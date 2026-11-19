@@ -45,7 +45,7 @@ export default function Support() {
     <Shell>
       <h1 className="page-title">Customer support</h1>
       <div className="split">
-        <div className="card">
+        <div className="neu-card">
           <div className="card-body">
             <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Contact</h2>
             <p className="muted" style={{ marginTop: 0 }}>
@@ -60,7 +60,7 @@ export default function Support() {
           </div>
         </div>
 
-        <div className="card">
+        <div className="neu-card">
           <div className="card-body">
             {!user && (
               <div className="alert">
@@ -81,7 +81,7 @@ export default function Support() {
                   <label htmlFor="msg">Message</label>
                   <textarea id="msg" className="textarea" value={message} onChange={(e) => setMessage(e.target.value)} required />
                 </div>
-                <button className="btn" type="submit" disabled={busy}>
+                <button className="neu-btn" type="submit" disabled={busy}>
                   {busy ? "Sending…" : "Submit ticket"}
                 </button>
               </form>

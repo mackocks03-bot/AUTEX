@@ -141,7 +141,7 @@ export default function Movies() {
               borderRadius: 12,
               overflow: "hidden",
               cursor: "pointer",
-              border: "1px solid rgba(255,255,255,0.07)",
+              border: "1px solid rgba(0,0,0,0.07)",
               background: "#111",
             }}
           >

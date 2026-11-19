@@ -108,7 +108,7 @@ export default function LiveMatches() {
         {/* Left: Tracker & Stream */}
         <div className="live-main" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {selectedMatch ? (
-            <div className="card" style={{ padding: 0, overflow: "hidden", background: "var(--bg2)", border: "1px solid var(--stroke)" }}>
+            <div className="neu-card" style={{ padding: 0, overflow: "hidden", background: "var(--bg2)", border: "1px solid var(--stroke)" }}>
               {/* Header: Scores */}
               <div style={{ padding: "16px", background: "linear-gradient(180deg, rgba(56, 189, 248, 0.1), transparent)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ flex: 1, textAlign: "center" }}>
@@ -124,7 +124,7 @@ export default function LiveMatches() {
               </div>
 
               {/* Progress Bar */}
-              <div style={{ height: 6, background: "rgba(255,255,255,0.05)", position: "relative" }}>
+              <div style={{ height: 6, background: "rgba(0,0,0,0.05)", position: "relative" }}>
                  <div style={{ 
                    height: "100%", 
                    width: `${Math.min(100, (selectedMatch.fixture.status.elapsed / 90) * 100)}%`, 
@@ -142,14 +142,14 @@ export default function LiveMatches() {
                 position: "relative",
                 margin: "12px",
                 borderRadius: 12,
-                border: "3px solid rgba(255,255,255,0.3)",
+                border: "3px solid rgba(0,0,0,0.3)",
                 overflow: "hidden"
               }}>
                 {/* Pitch Markings */}
-                <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,0.3)" }} />
-                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 80, height: 80, border: "2px solid rgba(255,255,255,0.3)", borderRadius: "50%" }} />
-                <div style={{ position: "absolute", left: -2, top: "25%", bottom: "25%", width: "15%", border: "2px solid rgba(255,255,255,0.3)" }} />
-                <div style={{ position: "absolute", right: -2, top: "25%", bottom: "25%", width: "15%", border: "2px solid rgba(255,255,255,0.3)" }} />
+                <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "rgba(0,0,0,0.3)" }} />
+                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 80, height: 80, border: "2px solid rgba(0,0,0,0.3)", borderRadius: "50%" }} />
+                <div style={{ position: "absolute", left: -2, top: "25%", bottom: "25%", width: "15%", border: "2px solid rgba(0,0,0,0.3)" }} />
+                <div style={{ position: "absolute", right: -2, top: "25%", bottom: "25%", width: "15%", border: "2px solid rgba(0,0,0,0.3)" }} />
 
                 {/* Animated Ball */}
                 <div style={{ 
@@ -181,7 +181,7 @@ export default function LiveMatches() {
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   zIndex: 20,
-                  border: "1px solid rgba(255,255,255,0.1)"
+                  border: "1px solid rgba(0,0,0,0.1)"
                 }}>
                   {actionText}
                 </div>
@@ -193,29 +193,29 @@ export default function LiveMatches() {
 
               {/* Match Stats Simulation (Placeholder) */}
               <div style={{ padding: 20, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, textAlign: "center" }}>
-                 <div className="card" style={{ padding: 12, background: "rgba(255,255,255,0.02)" }}>
+                 <div className="neu-card" style={{ padding: 12, background: "rgba(0,0,0,0.02)" }}>
                     <div style={{ fontSize: 10, color: "var(--muted)" }}>POSSESSION</div>
                     <div style={{ fontWeight: 800 }}>52% - 48%</div>
                  </div>
-                 <div className="card" style={{ padding: 12, background: "rgba(255,255,255,0.02)" }}>
+                 <div className="neu-card" style={{ padding: 12, background: "rgba(0,0,0,0.02)" }}>
                     <div style={{ fontSize: 10, color: "var(--muted)" }}>SHOTS ON TARGET</div>
                     <div style={{ fontWeight: 800 }}>4 - 2</div>
                  </div>
-                 <div className="card" style={{ padding: 12, background: "rgba(255,255,255,0.02)" }}>
+                 <div className="neu-card" style={{ padding: 12, background: "rgba(0,0,0,0.02)" }}>
                     <div style={{ fontSize: 10, color: "var(--muted)" }}>CORNERS</div>
                     <div style={{ fontWeight: 800 }}>6 - 3</div>
                  </div>
               </div>
             </div>
           ) : (
-            <div className="card" style={{ padding: 60, textAlign: "center" }}>
+            <div className="neu-card" style={{ padding: 60, textAlign: "center" }}>
                {loading ? "Finding live matches..." : "No matches are live right now. Check back during kick-off!"}
             </div>
           )}
 
           {/* Events List */}
           {selectedMatch && (
-            <div className="card" style={{ padding: 24 }}>
+            <div className="neu-card" style={{ padding: 24 }}>
                <h3 style={{ margin: "0 0 16px 0" }}>Live Events</h3>
                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {/* Simulate some events if empty */}

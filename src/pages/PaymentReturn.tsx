@@ -71,10 +71,10 @@ export default function PaymentReturn() {
       <h1 className="page-title" style={{ textAlign: "center" }}>Payment Status</h1>
       
       {!user && (
-        <div className="card" style={{ maxWidth: 500, margin: "0 auto" }}>
+        <div className="neu-card" style={{ maxWidth: 500, margin: "0 auto" }}>
           <div className="card-body" style={{ textAlign: "center" }}>
             <div className="alert">Please log in to verify your payment.</div>
-            <Link className="btn" to="/login" style={{ marginTop: 15 }}>
+            <Link className="neu-btn" to="/login" style={{ marginTop: 15 }}>
               Log in
             </Link>
           </div>
@@ -82,7 +82,7 @@ export default function PaymentReturn() {
       )}
 
       {user && phase === "wait" && (
-        <div className="card" style={{ maxWidth: 500, margin: "0 auto", padding: "20px 0" }}>
+        <div className="neu-card" style={{ maxWidth: 500, margin: "0 auto", padding: "20px 0" }}>
           <div className="card-body" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
             
             <div style={{ position: "relative", width: 100, height: 100, marginBottom: 20 }}>
@@ -111,10 +111,10 @@ export default function PaymentReturn() {
             </div>
             
             <div style={{ 
-              background: "rgba(5, 8, 22, 0.4)", 
+              background: "rgba(0, 0, 0, 0.4)", 
               padding: "15px 30px", 
               borderRadius: 12, 
-              border: "1px solid rgba(255,255,255,0.05)",
+              border: "1px solid rgba(0,0,0,0.05)",
               marginBottom: 20
             }}>
               <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>Time Remaining</div>
@@ -128,7 +128,7 @@ export default function PaymentReturn() {
             </p>
 
             <div className="row" style={{ marginTop: 20, width: "100%", justifyContent: "center", gap: 10 }}>
-              <Link className="btn btn-ghost" to="/payments">
+              <Link className="neu-btn btn-ghost" to="/payments">
                 Payment history
               </Link>
             </div>
@@ -143,7 +143,7 @@ export default function PaymentReturn() {
       )}
 
       {user && phase === "success" && (
-        <div className="card" style={{ maxWidth: 500, margin: "0 auto" }}>
+        <div className="neu-card" style={{ maxWidth: 500, margin: "0 auto" }}>
           <div className="card-body" style={{ textAlign: "center", padding: "40px 20px" }}>
             <div style={{ 
               width: 80, height: 80, borderRadius: "50%", background: "rgba(16, 185, 129, 0.1)", 
@@ -161,7 +161,7 @@ export default function PaymentReturn() {
       )}
 
       {user && phase === "failed" && (
-        <div className="card" style={{ maxWidth: 500, margin: "0 auto" }}>
+        <div className="neu-card" style={{ maxWidth: 500, margin: "0 auto" }}>
           <div className="card-body" style={{ textAlign: "center" }}>
             <div style={{ 
               width: 64, height: 64, borderRadius: "50%", background: "rgba(239, 68, 68, 0.1)", 
@@ -177,10 +177,10 @@ export default function PaymentReturn() {
             <h2 style={{ margin: "0 0 10px", fontSize: 22 }}>Payment Failed</h2>
             <div className="alert">The payment was reported as failed or cancelled.</div>
             <div className="row" style={{ marginTop: 20, justifyContent: "center" }}>
-              <Link className="btn btn-ghost" to="/">
+              <Link className="neu-btn btn-ghost" to="/">
                 Browse
               </Link>
-              <Link className="btn" to="/payments">
+              <Link className="neu-btn" to="/payments">
                 Payment history
               </Link>
             </div>
@@ -189,11 +189,11 @@ export default function PaymentReturn() {
       )}
 
       {user && phase === "missing" && (
-        <div className="card" style={{ maxWidth: 500, margin: "0 auto" }}>
+        <div className="neu-card" style={{ maxWidth: 500, margin: "0 auto" }}>
           <div className="card-body" style={{ textAlign: "center" }}>
             <div className="alert info">No active checkout session was found for this browser tab.</div>
-            <Link className="btn" to="/" style={{ marginTop: 15 }}>
-              Browse betslips
+            <Link className="neu-btn" to="/bots" style={{ marginTop: 15 }}>
+              Browse AI Bots
             </Link>
           </div>
         </div>

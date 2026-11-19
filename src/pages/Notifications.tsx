@@ -74,7 +74,7 @@ export default function Notifications() {
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Notifications</h1>
         {unreadCount > 0 && (
-          <button className="btn btn-ghost" onClick={() => void markAllAsRead()}>
+          <button className="neu-btn btn-ghost" onClick={() => void markAllAsRead()}>
             Mark all as read
           </button>
         )}
@@ -86,7 +86,7 @@ export default function Notifications() {
           return (
             <div
               key={n.id}
-              className="card"
+              className="neu-card"
               style={{
                 cursor: isUnread ? "pointer" : "default",
                 borderColor: isUnread ? "var(--accent)" : "var(--stroke)",
@@ -127,7 +127,7 @@ export default function Notifications() {
           );
         })}
         {!notifications.length && (
-          <div className="card">
+          <div className="neu-card">
             <div className="card-body" style={{ textAlign: "center", padding: "40px 20px" }}>
               <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📭</div>
               <h3 style={{ margin: "0 0 8px" }}>No notifications</h3>

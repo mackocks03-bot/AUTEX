@@ -130,10 +130,10 @@ export function TeamDetailsModal({ teamId, fixtureId, leagueId, season, teamName
           flexDirection: "column-reverse", 
           justifyContent: "space-around"
         }}>
-          <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.4)" }} />
-          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 60, height: 60, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.4)" }} />
-          <div style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: "40%", height: "15%", border: "2px solid rgba(255,255,255,0.4)" }} />
-          <div style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", width: "40%", height: "15%", border: "2px solid rgba(255,255,255,0.4)" }} />
+          <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 2, background: "rgba(0,0,0,0.4)" }} />
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 60, height: 60, borderRadius: "50%", border: "2px solid rgba(0,0,0,0.4)" }} />
+          <div style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: "40%", height: "15%", border: "2px solid rgba(0,0,0,0.4)" }} />
+          <div style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", width: "40%", height: "15%", border: "2px solid rgba(0,0,0,0.4)" }} />
           
           {sortedRows.map((x) => {
             const playersInRow = rows[x].sort((a: any, b: any) => {
@@ -244,7 +244,7 @@ export function TeamDetailsModal({ teamId, fixtureId, leagueId, season, teamName
   const renderHistory = () => (
     <div className="grid" style={{ gap: 12 }}>
       {history.map(m => (
-        <div key={m.fixture.id} className="card" style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div key={m.fixture.id} className="neu-card" style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
             <span style={{ fontSize: 13, fontWeight: m.teams.home.id === teamId ? "bold" : "normal", color: m.teams.home.winner ? "var(--accent)" : "inherit" }}>{m.teams.home.name}</span>
             <img src={m.teams.home.logo} alt={m.teams.home.name} width={24} height={24} />
@@ -284,7 +284,7 @@ export function TeamDetailsModal({ teamId, fixtureId, leagueId, season, teamName
                 <div 
                   key={p.id} 
                   onClick={() => setActivePlayerId(p.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: 8, background: "rgba(255,255,255,0.03)", borderRadius: 8, cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: 8, background: "rgba(0,0,0,0.03)", borderRadius: 8, cursor: "pointer" }}
                 >
                   <img src={p.photo} alt={p.name} width={40} height={40} style={{ borderRadius: "50%", objectFit: "cover", background: "#fff" }} />
                   <div>
@@ -330,7 +330,7 @@ export function TeamDetailsModal({ teamId, fixtureId, leagueId, season, teamName
           <button 
             onClick={onClose}
             style={{
-              position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.05)", border: "none", color: "var(--muted)",
+              position: "absolute", top: 16, right: 16, background: "rgba(0,0,0,0.05)", border: "none", color: "var(--muted)",
               width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
             }}
           >✕</button>
@@ -357,19 +357,19 @@ export function TeamDetailsModal({ teamId, fixtureId, leagueId, season, teamName
                 <>
                   {teamStanding && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-                      <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(5, 8, 22, 0.5)" }}>
+                      <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0, 0, 0, 0.5)" }}>
                         <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase" }}>Played</div>
                         <div style={{ fontSize: 20, fontWeight: 800 }}>{teamStanding.all?.played}</div>
                       </div>
-                      <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(5, 8, 22, 0.5)" }}>
+                      <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0, 0, 0, 0.5)" }}>
                         <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase" }}>Won</div>
                         <div style={{ fontSize: 20, fontWeight: 800, color: "var(--accent)" }}>{teamStanding.all?.win}</div>
                       </div>
-                      <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(5, 8, 22, 0.5)" }}>
+                      <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0, 0, 0, 0.5)" }}>
                         <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase" }}>Drawn</div>
                         <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)" }}>{teamStanding.all?.draw}</div>
                       </div>
-                      <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(5, 8, 22, 0.5)" }}>
+                      <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0, 0, 0, 0.5)" }}>
                         <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase" }}>Lost</div>
                         <div style={{ fontSize: 20, fontWeight: 800, color: "var(--danger)" }}>{teamStanding.all?.lose}</div>
                       </div>
@@ -449,19 +449,19 @@ function PlayerDetailsModal({ playerId, season, onClose }: { playerId: number, s
             </div>
             
             <div className="grid cols-2" style={{ gap: 12 }}>
-              <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
+              <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0,0,0,0.03)" }}>
                 <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase" }}>Appearances</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{playerInfo.statistics[0].games.appearences || 0}</div>
               </div>
-              <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
+              <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0,0,0,0.03)" }}>
                 <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase" }}>Goals</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: "var(--accent)" }}>{playerInfo.statistics[0].goals.total || 0}</div>
               </div>
-              <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
+              <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0,0,0,0.03)" }}>
                 <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase" }}>Assists</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: "var(--accent2)" }}>{playerInfo.statistics[0].goals.assists || 0}</div>
               </div>
-              <div className="card" style={{ padding: 12, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
+              <div className="neu-card" style={{ padding: 12, textAlign: "center", background: "rgba(0,0,0,0.03)" }}>
                 <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase" }}>Rating</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: "#facc15" }}>{parseFloat(playerInfo.statistics[0].games.rating || "0").toFixed(1)}</div>
               </div>
@@ -486,7 +486,7 @@ function PlayerDetailsModal({ playerId, season, onClose }: { playerId: number, s
               </div>
             </div>
 
-            <button className="btn" style={{ width: "100%", marginTop: 24, padding: 12 }} onClick={onClose}>Close Details</button>
+            <button className="neu-btn" style={{ width: "100%", marginTop: 24, padding: 12 }} onClick={onClose}>Close Details</button>
           </div>
         ) : (
           <div style={{ padding: 40, textAlign: "center" }}>No details found for this player.</div>

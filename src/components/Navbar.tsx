@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/firebase";
@@ -12,8 +12,11 @@ function linkCls({ isActive }: { isActive: boolean }) {
 
 export function Navbar() {
   const { user, loading, isAdmin, logout } = useAuth();
-  const { lang, toggle, t } = useLanguage();
+  const { t } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const query = params.get("q") || "";
 
   useEffect(() => {
     if (!user) {
@@ -52,6 +55,59 @@ export function Navbar() {
     };
   }, [user]);
 
+  if (isSearchActive) {
+    return (
+      <nav className="nav search-active-nav" style={{ padding: "4px 12px", display: "flex", alignItems: "center", gap: 8, height: "40px", minHeight: "40px" }}>
+        <button
+          type="button"
+          onClick={() => { setIsSearchActive(false); params.delete("q"); setParams(params); }}
+          style={{ background: "transparent", border: "none", color: "var(--muted)", padding: "4px", cursor: "pointer", display: "flex", alignItems: "center" }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <input
+          type="text"
+          autoFocus
+          placeholder={t.searchPlaceholder || "Search..."}
+          value={query}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val) {
+              params.set("q", val);
+            } else {
+              params.delete("q");
+            }
+            setParams(params);
+          }}
+          style={{
+            flex: 1,
+            background: "transparent",
+            border: "none",
+            color: "var(--text)",
+            fontSize: "16px",
+            outline: "none",
+            width: "100%",
+          }}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => { params.delete("q"); setParams(params); }}
+            style={{ background: "transparent", border: "none", color: "var(--muted)", padding: "4px", cursor: "pointer", display: "flex", alignItems: "center" }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+      </nav>
+    );
+  }
+
   return (
     <nav className="nav">
       <Link to="/" className="brand" title="Mfalme wa Mikeka">
@@ -73,33 +129,17 @@ export function Navbar() {
         <span className="brand-text-mfalme" style={{ fontSize: 14, letterSpacing: "0.06em", fontStyle: "normal" }}>MWM</span>
       </Link>
       <div className="nav-links">
-        {/* Language toggle */}
         <button
           type="button"
-          onClick={toggle}
-          title={t.languageToggle}
-          style={{
-            background: "rgba(250,204,21,0.1)",
-            border: "1px solid rgba(250,204,21,0.25)",
-            borderRadius: 999,
-            padding: "4px 10px",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#facc15",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            transition: "all 0.2s",
-            letterSpacing: "0.04em",
-          }}
+          onClick={() => setIsSearchActive(true)}
+          title={t.search || "Search"}
+          style={{ background: "transparent", border: "none", color: "var(--muted)", padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center" }}
         >
-          🌐 {lang === "en" ? "SW" : "EN"}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
         </button>
-
-        <NavLink to="/movies" className={linkCls}>
-          {t.movies}
-        </NavLink>
         {user && isAdmin && (
           <NavLink to="/admin" className={linkCls}>
             {t.admin}

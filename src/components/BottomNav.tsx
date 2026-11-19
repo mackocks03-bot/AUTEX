@@ -26,7 +26,7 @@ function LoginPromptModal({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(5, 8, 22, 0.75)",
+          background: "rgba(0, 0, 0, 0.75)",
           backdropFilter: "blur(6px)",
           zIndex: 200,
           animation: "fadeIn 0.2s ease",
@@ -196,7 +196,7 @@ function GuardedDockItem({
 }
 
 export function BottomNav() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useLanguage();
   const [promptSection, setPromptSection] = useState<string | null>(null);
   const isGuest = !user;
@@ -217,38 +217,43 @@ export function BottomNav() {
             <span>{t.home}</span>
           </NavLink>
 
-          {/* Chat — protected */}
+          {/* My Bots — protected */}
           <GuardedDockItem
-            to="/chat"
-            label={t.chat}
+            to="/my-bots"
+            label="My Bots"
             isGuest={isGuest}
             onGuest={handleGuest}
             icon={
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                <rect x="3" y="11" width="18" height="10" rx="2" />
+                <circle cx="12" cy="5" r="2" />
+                <path d="M12 7v4" />
+                <line x1="8" y1="16" x2="8" y2="16" strokeWidth="3" strokeLinecap="round" />
+                <line x1="16" y1="16" x2="16" y2="16" strokeWidth="3" strokeLinecap="round" />
               </svg>
             }
           />
 
-          {/* Betslips — protected */}
+          {/* Bots — protected */}
           <GuardedDockItem
-            to="/betslips"
-            label={t.betslips}
+            to="/bots"
+            label="Bots"
             isGuest={isGuest}
             onGuest={handleGuest}
             icon={
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                <circle cx="12" cy="16" r="1" fill="currentColor" />
+                <line x1="8" y1="16" x2="8" y2="16" strokeWidth="3" strokeLinecap="round" />
+                <line x1="16" y1="16" x2="16" y2="16" strokeWidth="3" strokeLinecap="round" />
               </svg>
             }
           />
 
           {/* Wallet — protected */}
           <GuardedDockItem
-            to="/payments"
+            to="/deposit"
             label={t.wallet}
             isGuest={isGuest}
             onGuest={handleGuest}
@@ -273,6 +278,30 @@ export function BottomNav() {
               </svg>
             }
           />
+
+          {/* Admin — only visible for admin users */}
+          {user && isAdmin && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) => isActive ? "dock-item active" : "dock-item"}
+              style={{ position: "relative" }}
+            >
+              <span style={{
+                position: "absolute",
+                top: 2,
+                right: 2,
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "#d97706",
+                boxShadow: "0 0 6px rgba(217,119,6,0.8)",
+              }} />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <span>Admin</span>
+            </NavLink>
+          )}
         </nav>
       </div>
 

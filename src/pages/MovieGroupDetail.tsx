@@ -138,7 +138,7 @@ export default function MovieGroupDetail() {
     return (
       <Shell>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-          <div style={{ width: 40, height: 40, border: "3px solid rgba(255,255,255,0.1)", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
+          <div style={{ width: 40, height: 40, border: "3px solid rgba(0,0,0,0.1)", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
         </div>
       </Shell>
     );
@@ -151,7 +151,7 @@ export default function MovieGroupDetail() {
   return (
     <Shell>
       <div style={{ marginBottom: 24 }}>
-        <Link to="/movies" className="btn btn-ghost" style={{ marginBottom: 16 }}>← Back to Groups</Link>
+        <Link to="/movies" className="neu-btn btn-ghost" style={{ marginBottom: 16 }}>← Back to Groups</Link>
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px" }}>
              <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", borderRadius: 16, overflow: "hidden", border: "1px solid var(--stroke)" }}>
@@ -162,7 +162,7 @@ export default function MovieGroupDetail() {
             <h1 style={{ fontSize: "clamp(24px, 6vw, 32px)", margin: 0, color: unlocked ? "var(--accent)" : "#fef08a", lineHeight: 1.2 }}>{group.name}</h1>
             <p className="muted" style={{ fontSize: "clamp(14px, 4vw, 16px)", margin: "8px 0 20px" }}>{group.description}</p>
             {!unlocked && (
-              <div className="card" style={{ border: "1px solid #facc15", background: "rgba(250, 204, 21, 0.05)" }}>
+              <div className="neu-card" style={{ border: "1px solid #facc15", background: "rgba(250, 204, 21, 0.05)" }}>
                 <div className="card-body" style={{ padding: "clamp(12px, 4vw, 20px)" }}>
                   <h2 style={{ margin: 0, fontSize: "clamp(18px, 4vw, 20px)", color: "#fef08a" }}>Unlock this Group</h2>
                   <p className="muted" style={{ margin: "4px 0 16px", fontSize: 13 }}>Pay once to get lifetime access to all movies in this group.</p>
@@ -178,7 +178,7 @@ export default function MovieGroupDetail() {
                       <label>Phone (255...)</label>
                       <input className="input" value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="2557XXXXXXXX" />
                     </div>
-                    <button className="btn" disabled={payBusy} onClick={startPayment} style={{ background: "#facc15", color: "#000", fontWeight: 800 }}>
+                    <button className="neu-btn" disabled={payBusy} onClick={startPayment} style={{ background: "#facc15", color: "#000", fontWeight: 800 }}>
                       {payBusy ? "Processing..." : `Unlock for ${group.amount} ${group.currency}`}
                     </button>
                   </div>
@@ -201,7 +201,7 @@ export default function MovieGroupDetail() {
             {finalMovies.map((movie, idx) => (
               <div 
                 key={movie.id || idx} 
-                className="card" 
+                className="neu-card" 
                 style={{ cursor: "pointer", border: "1px solid var(--stroke)", overflow: "hidden" }}
                 onClick={() => setActiveMovie(movie)}
               >

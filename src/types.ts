@@ -1,3 +1,21 @@
+export type Match = {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo: string;
+  awayLogo: string;
+  time: string;
+  league: string;
+  status: string;
+  createdAt: number;
+  homeScore: number | null;
+  awayScore: number | null;
+  homeTeamId?: number;
+  awayTeamId?: number;
+  leagueId?: number;
+  season?: number;
+};
+
 export type BetslipResult = "pending" | "won" | "lost";
 
 export type Betslip = {

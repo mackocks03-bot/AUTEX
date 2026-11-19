@@ -1,10 +1,8 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
 import { translations, type Lang } from "@/i18n/translations";
@@ -18,33 +16,25 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const STORAGE_KEY = "mwm_lang";
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "sw" ? "sw" : "en";
-  });
+  // Always lock language to English
+  const lang: Lang = "en";
 
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    localStorage.setItem(STORAGE_KEY, l);
+  useEffect(() => {
+    localStorage.removeItem("mwm_lang");
+    document.documentElement.lang = "en";
   }, []);
 
-  const toggle = useCallback(() => {
-    setLang(lang === "en" ? "sw" : "en");
-  }, [lang, setLang]);
-
-  // Update html lang attribute for accessibility
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  const t = useMemo(() => translations[lang], [lang]);
+  const t = translations.en;
 
   const value = useMemo(
-    () => ({ lang, setLang, t, toggle }),
-    [lang, setLang, t, toggle]
+    () => ({
+      lang,
+      setLang: () => {},
+      t,
+      toggle: () => {},
+    }),
+    [t]
   );
 
   return (

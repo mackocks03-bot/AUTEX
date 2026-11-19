@@ -112,7 +112,7 @@ export function AdminMovies() {
   return (
     <div className="split">
       <div className="grid" style={{ gap: 24 }}>
-        <div className="card">
+        <div className="neu-card">
           <div className="card-body">
             <h2 style={{ margin: "0 0 16px" }}>Manage Movie Groups</h2>
             {msg && <div className="alert info" style={{ marginBottom: 12 }}>{msg}</div>}
@@ -136,7 +136,7 @@ export function AdminMovies() {
                 <label>Description</label>
                 <textarea className="textarea" value={gDesc} onChange={e => setGDesc(e.target.value)} required />
               </div>
-              <button className="btn" type="submit" disabled={busy}>Create Group</button>
+              <button className="neu-btn" type="submit" disabled={busy}>Create Group</button>
             </form>
 
             <hr style={{ margin: "24px 0", border: "0", borderTop: "1px solid var(--stroke)" }} />
@@ -163,7 +163,7 @@ export function AdminMovies() {
                 <label>Source: Upload Video File</label>
                 <input type="file" accept="video/*" onChange={e => setMFile(e.target.files?.[0] ?? null)} />
               </div>
-              <button className="btn" type="submit" disabled={busy}>
+              <button className="neu-btn" type="submit" disabled={busy}>
                 {busy ? "Processing..." : "Add Movie"}
               </button>
             </form>
@@ -171,7 +171,7 @@ export function AdminMovies() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="neu-card">
         <div className="card-body" style={{ padding: 0 }}>
            <h3 style={{ padding: 16, margin: 0 }}>Groups & Movies List</h3>
            <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
@@ -185,7 +185,7 @@ export function AdminMovies() {
                </thead>
                <tbody>
                  {groupList.map(g => (
-                   <tr key={g.id} style={{ background: "rgba(255,255,255,0.03)" }}>
+                   <tr key={g.id} style={{ background: "rgba(0,0,0,0.03)" }}>
                      <td>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                            <img src={g.thumbnail} style={{ width: 40, height: 40, borderRadius: 4, objectFit: "cover" }} />
@@ -193,14 +193,14 @@ export function AdminMovies() {
                         </div>
                      </td>
                      <td>{g.amount} TZS</td>
-                     <td><button className="btn btn-danger btn-sm" onClick={() => deleteGroup(g.id)}>Delete</button></td>
+                     <td><button className="neu-btn btn-danger btn-sm" onClick={() => deleteGroup(g.id)}>Delete</button></td>
                    </tr>
                  ))}
                  {movieList.map(m => (
                    <tr key={m.id}>
                      <td style={{ paddingLeft: 32 }}>🎬 {m.title}</td>
                      <td style={{ fontSize: 11 }}>{m.youtubeId ? "YouTube" : "Uploaded File"}</td>
-                     <td><button className="btn btn-danger btn-sm" onClick={() => deleteMovie(m.id)}>Delete</button></td>
+                     <td><button className="neu-btn btn-danger btn-sm" onClick={() => deleteMovie(m.id)}>Delete</button></td>
                    </tr>
                  ))}
                </tbody>

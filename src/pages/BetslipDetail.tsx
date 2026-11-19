@@ -185,7 +185,7 @@ export default function BetslipDetail() {
     return (
       <Shell>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-          <div style={{ width: 40, height: 40, border: "3px solid rgba(255,255,255,0.1)", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
+          <div style={{ width: 40, height: 40, border: "3px solid rgba(0,0,0,0.1)", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
         </div>
       </Shell>
     );
@@ -222,7 +222,7 @@ export default function BetslipDetail() {
     return (
       <Shell>
         <div className="alert">This betslip has expired and is no longer available for purchase.</div>
-        <Link className="btn btn-ghost" to="/">
+        <Link className="neu-btn btn-ghost" to="/">
           Back
         </Link>
       </Shell>
@@ -234,7 +234,7 @@ export default function BetslipDetail() {
   return (
     <Shell>
       <div className="row" style={{ marginTop: 10, marginBottom: 10 }}>
-        <Link className="btn btn-ghost" to="/">
+        <Link className="neu-btn btn-ghost" to="/">
           ← All betslips
         </Link>
         <span className="pill">
@@ -243,11 +243,11 @@ export default function BetslipDetail() {
       </div>
 
       <div className="split">
-        <div className="card">
+        <div className="neu-card">
           <div style={{ position: "relative", overflow: "hidden" }}>
             <img className={`thumb ${unlocked ? "breathe" : ""}`} src={slip.imageUrl} alt="" style={{ filter: unlocked ? "none" : "blur(14px) brightness(0.6)", transform: unlocked ? "none" : "scale(1.1)", transition: "all 0.5s ease" }} />
             {!unlocked && (
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", background: "rgba(5, 8, 22, 0.3)" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", background: "rgba(0, 0, 0, 0.3)" }}>
                 <span className="breathe" style={{ fontSize: 42, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.8))", display: "inline-block" }}>🔒</span>
                 <span className="breathe" style={{ fontWeight: 700, marginTop: 12, color: "#fff", textShadow: "0 2px 8px rgba(0,0,0,0.8)", letterSpacing: "0.05em", fontSize: 18, display: "inline-block" }}>LOCKED</span>
               </div>
@@ -274,14 +274,14 @@ export default function BetslipDetail() {
 
         <div className="grid" style={{ gap: 14 }}>
           {!user && (
-            <div className="card">
+            <div className="neu-card">
               <div className="card-body">
                 <div className="alert info">Log in to purchase and unlock this betslip.</div>
                 <div className="row" style={{ marginTop: 10 }}>
-                  <Link className="btn" to="/login">
+                  <Link className="neu-btn" to="/login">
                     Log in
                   </Link>
-                  <Link className="btn btn-ghost" to="/register">
+                  <Link className="neu-btn btn-ghost" to="/register">
                     Register
                   </Link>
                 </div>
@@ -292,7 +292,7 @@ export default function BetslipDetail() {
 
           {/* Payment form — only shown in paid mode when not yet purchased */}
           {user && !unlocked && accessMode === "paid" && (
-            <div className="card">
+            <div className="neu-card">
               <div className="card-body">
                 <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Pay with PalmPesa</h2>
                 <p className="muted" style={{ marginTop: 0 }}>
@@ -312,7 +312,7 @@ export default function BetslipDetail() {
                     <label htmlFor="bp">Phone (MSISDN, e.g. 2557…)</label>
                     <input id="bp" className="input" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} />
                   </div>
-                  <button className="btn" type="button" disabled={payBusy} onClick={() => void startPayment()}>
+                  <button className="neu-btn" type="button" disabled={payBusy} onClick={() => void startPayment()}>
                     {payBusy ? "Starting…" : `Pay ${slip.cost} ${slip.currency}`}
                   </button>
                 </div>
@@ -321,7 +321,7 @@ export default function BetslipDetail() {
           )}
 
           {user && unlocked && (
-            <div className="card">
+            <div className="neu-card">
               <div className="card-body">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
@@ -352,7 +352,7 @@ export default function BetslipDetail() {
                 </div>
                 <div className="row" style={{ marginTop: 12 }}>
                   <button
-                    className="btn btn-ghost"
+                    className="neu-btn btn-ghost"
                     type="button"
                     disabled={!code}
                     onClick={() => {
@@ -362,7 +362,7 @@ export default function BetslipDetail() {
                     Copy code
                   </button>
                   <button
-                    className="btn btn-ghost"
+                    className="neu-btn btn-ghost"
                     type="button"
                     disabled={!code}
                     onClick={() => {

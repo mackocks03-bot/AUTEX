@@ -83,7 +83,7 @@ export function AdminNotifications() {
 
   return (
     <div className="split">
-      <div className="card">
+      <div className="neu-card">
         <div className="card-body">
           <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Send Notification</h2>
           {msg && <div className="alert info" style={{ marginBottom: 10 }}>{msg}</div>}
@@ -101,14 +101,14 @@ export function AdminNotifications() {
               <label htmlFor="img">Image (Optional)</label>
               <input id="img" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </div>
-            <button className="btn" type="submit" disabled={busy}>
+            <button className="neu-btn" type="submit" disabled={busy}>
               {busy ? "Publishing…" : "Publish Notification"}
             </button>
           </form>
         </div>
       </div>
 
-      <div className="card">
+      <div className="neu-card">
         <div className="card-body" style={{ padding: 0 }}>
           <table className="table">
             <thead>
@@ -136,7 +136,7 @@ export function AdminNotifications() {
                     {new Date(n.createdAt).toLocaleDateString()}
                   </td>
                   <td style={{ width: 80 }}>
-                    <button className="btn btn-ghost" style={{ color: "var(--danger)" }} type="button" onClick={() => void deleteNotification(n.id!)}>
+                    <button className="neu-btn btn-ghost" style={{ color: "var(--danger)" }} type="button" onClick={() => void deleteNotification(n.id!)}>
                       Delete
                     </button>
                   </td>
