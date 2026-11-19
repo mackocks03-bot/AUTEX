@@ -31,11 +31,11 @@ export default function Support() {
         status: "open",
         createdAt: serverTimestamp(),
       });
-      setDone("Ticket submitted. Our team will follow up by email.");
+      setDone("Request submitted. Our team will follow up shortly.");
       setSubject("");
       setMessage("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not submit ticket.");
+      setError(err instanceof Error ? err.message : "Could not submit request.");
     } finally {
       setBusy(false);
     }
@@ -49,13 +49,12 @@ export default function Support() {
           <div className="card-body">
             <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Contact</h2>
             <p className="muted" style={{ marginTop: 0 }}>
-              For payment issues, include your phone number and approximate payment time. For betslip access issues,
-              include the betslip title.
+              For deposit, bot activation, or withdrawal inquiries, include your registered phone number and transaction details.
             </p>
             <div className="grid" style={{ marginTop: 14, gap: 10 }}>
               <div className="pill">Email: {email || "—"}</div>
-              <div className="pill">Hours: Mon–Sun, 09:00–21:00 (EAT)</div>
-              <div className="pill">Typical response: under 24 hours</div>
+              <div className="pill">Hours: Mon–Sun, 24/7 Priority Support</div>
+              <div className="pill">Typical response: under 2 hours</div>
             </div>
           </div>
         </div>
@@ -64,13 +63,13 @@ export default function Support() {
           <div className="card-body">
             {!user && (
               <div className="alert">
-                Log in to open a support ticket. <Link to="/login">Log in</Link>
+                Log in to submit a support request. <Link to="/login">Log in</Link>
               </div>
             )}
 
             {user && (
               <form className="grid" style={{ gap: 12 }} onSubmit={submit}>
-                <h2 style={{ margin: 0, fontSize: 18 }}>Open a ticket</h2>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Submit Support Request</h2>
                 {done && <div className="alert info">{done}</div>}
                 {error && <div className="alert">{error}</div>}
                 <div className="field">
@@ -82,7 +81,7 @@ export default function Support() {
                   <textarea id="msg" className="textarea" value={message} onChange={(e) => setMessage(e.target.value)} required />
                 </div>
                 <button className="neu-btn" type="submit" disabled={busy}>
-                  {busy ? "Sending…" : "Submit ticket"}
+                  {busy ? "Sending…" : "Send Request"}
                 </button>
               </form>
             )}

@@ -166,8 +166,8 @@ export default function Account() {
     );
   }
 
-  const displayName = user.displayName || user.email?.split("@")[0] || "Binance User";
-  const displayPhone = user.email?.endsWith("@mfalmewamikeka.com") ? user.email.replace("@mfalmewamikeka.com", "") : user.email;
+  const displayName = user.displayName || user.email?.split("@")[0] || "AUTEX User";
+  const displayPhone = user.email?.replace(/@.*$/, "") || user.email;
 
   return (
     <Shell>

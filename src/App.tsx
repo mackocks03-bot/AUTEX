@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 import { Navigate, Route, Routes, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Home from "@/pages/Home";
-import BetslipDetail from "@/pages/BetslipDetail";
 import MovieGroupDetail from "@/pages/MovieGroupDetail";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -20,7 +19,6 @@ import MyBots from "@/pages/MyBots";
 import Notifications from "@/pages/Notifications";
 import Movies from "@/pages/Movies";
 import Affiliate from "@/pages/Affiliate";
-import LiveMatches from "@/pages/LiveMatches";
 
 /** Spinner shown while Firebase Auth determines the current session */
 function AuthLoadingScreen() {
@@ -125,8 +123,8 @@ export default function App() {
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/affiliate" element={<Affiliate />} />
-        <Route path="/live" element={<LiveMatches />} />
-        <Route path="/slip/:id" element={<BetslipDetail />} />
+        <Route path="/live" element={<Navigate to="/my-bots" replace />} />
+        <Route path="/slip/:id" element={<Navigate to="/my-bots" replace />} />
         <Route path="/payments" element={<PaymentHistory />} />
         <Route path="/deposit" element={<Deposit />} />
         <Route path="/withdraw" element={<Withdraw />} />

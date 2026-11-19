@@ -110,7 +110,7 @@ export function Navbar() {
 
   return (
     <nav className="nav">
-      <Link to="/" className="brand" title="Mfalme wa Mikeka">
+      <Link to="/" className="brand" title="AUTEX AI">
         <span aria-hidden style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="22" height="18" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -126,7 +126,7 @@ export function Navbar() {
             <circle cx="26" cy="8" r="2.5" fill="#facc15" />
           </svg>
         </span>
-        <span className="brand-text-mfalme" style={{ fontSize: 14, letterSpacing: "0.06em", fontStyle: "normal" }}>MWM</span>
+        <span className="brand-text-autex" style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.06em", fontStyle: "normal" }}>AUTEX</span>
       </Link>
       <div className="nav-links">
         <button

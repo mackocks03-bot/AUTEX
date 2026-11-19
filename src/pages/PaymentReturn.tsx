@@ -16,7 +16,6 @@ export default function PaymentReturn() {
   useEffect(() => {
     if (!user) return;
     const orderId = sessionStorage.getItem("checkoutOrderId");
-    const betslipId = sessionStorage.getItem("checkoutBetslipId");
     if (!orderId) {
       setPhase("missing");
       return;
@@ -31,9 +30,8 @@ export default function PaymentReturn() {
         setPhase("success");
         setTimeout(() => {
           sessionStorage.removeItem("checkoutOrderId");
-          sessionStorage.removeItem("checkoutBetslipId");
-          if (betslipId) nav(`/slip/${betslipId}`, { replace: true });
-          else nav("/", { replace: true });
+          sessionStorage.removeItem("checkoutBotId");
+          nav("/my-bots", { replace: true });
         }, 1500);
       } else if (s === "failed") {
         setPhase("failed");
@@ -155,7 +153,7 @@ export default function PaymentReturn() {
               </svg>
             </div>
             <h2 style={{ margin: "0 0 10px", fontSize: 24, color: "#10b981" }}>Payment Successful!</h2>
-            <p className="muted">Redirecting to your unlocked betslip...</p>
+            <p className="muted">Redirecting to your active bots fleet...</p>
           </div>
         </div>
       )}

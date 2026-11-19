@@ -4,11 +4,11 @@ export const translations = {
   en: {
     // Nav
     home: "Home",
-    chat: "Chat",
-    betslips: "Betslips",
+    chat: "Bots",
+    bots: "Bots Fleet",
     wallet: "Wallet",
     profile: "Profile",
-    movies: "Movies",
+    movies: "Media",
     admin: "Admin",
     logIn: "Log in",
     register: "Register",
@@ -17,29 +17,29 @@ export const translations = {
     // Bottom nav modal
     signInRequired: "Sign In Required",
     signInDesc: (section: string) =>
-      `You need an account to access ${section}. Join to get premium picks!`,
+      `You need an account to access ${section}. Join to activate AI trading bots!`,
     cancel: "Cancel",
 
     // Home
-    footballMatches: "Football Matches",
-    topTierFootball: "Top tier football action.",
-    live: "Live",
+    aiMiningBots: "AI Mining Bots",
+    topTierBots: "Automated high-yield trading bots.",
+    live: "Active",
     today: "Today",
     tomorrow: "Tomorrow",
-    loadingMatches: "Loading live matches...",
-    noMatches: "No matches found. Admins will update the daily matches soon!",
-    viewOdds: "View Odds & Premium Tips",
+    loadingBots: "Loading trading bots...",
+    noMatches: "No active bots found right now.",
+    viewBots: "Explore AI Fleet",
 
     // Auth
     welcomeBack: "Welcome Back",
-    signInSubtitle: "Sign in to access your premium picks.",
+    signInSubtitle: "Sign in to manage your active mining bots.",
     emailAddress: "Email Address",
     password: "Password",
     forgotPassword: "Forgot password?",
     signIn: "Sign In",
     noAccount: "Don't have an account?",
     createAccount: "Create Account",
-    joinSubtitle: "Join us to get the best premium picks.",
+    joinSubtitle: "Join us to access autonomous AI yield bots.",
     fullName: "Full Name",
     username: "Username",
     phoneNumber: "Phone Number",
@@ -87,12 +87,12 @@ export const translations = {
     myChannels: "My Channels",
     affiliateProgram: "Affiliate Program",
     affiliateDesc:
-      "Invite your friends to Mfalme wa Mikeka and earn commissions for every successful registration!",
+      "Invite your friends to AUTEX AI and earn daily commission for every bot activated!",
     openAffiliate: "Open Affiliate Dashboard",
-    liveCenter: "Live Center",
+    liveCenter: "Bots Fleet",
     liveCenterDesc:
-      "Track live matches with our real-time visual simulation and live score tracker.",
-    enterLiveCenter: "Enter Live Center",
+      "Explore intelligent automated trading bots with guaranteed daily returns.",
+    enterLiveCenter: "Explore Bots",
     logInToView: "Log in to view your account.",
 
     // Language
@@ -101,10 +101,10 @@ export const translations = {
     english: "English",
     swahili: "Swahili",
 
-    // Betslips
-    premiumBetslips: "Premium Betslips",
-    betslipsSubtitle: "Today's handpicked winning codes.",
-    noBetslips: "No premium betslips available today. Check back soon!",
+    // Bots Fleet
+    aiBotsFleet: "AI Mining Fleet",
+    botsSubtitle: "Handpicked automated trading algorithms.",
+    noBots: "No bots available at this moment.",
 
     // Notifications
     notifications: "Notifications",
@@ -119,7 +119,7 @@ export const translations = {
     send: "Send",
 
     // Shell search
-    searchPlaceholder: "Search premium betslips, matches, or codes...",
+    searchPlaceholder: "Search AI bots, features, or plans...",
 
     // General
     loading: "Loading...",
@@ -132,8 +132,8 @@ export const translations = {
   sw: {
     // Nav
     home: "Nyumbani",
-    chat: "Gumzo",
-    betslips: "Kadi za Dau",
+    chat: "Roboti",
+    bots: "Roboti za AI",
     wallet: "Mkoba",
     profile: "Wasifu",
     movies: "Filamu",
@@ -145,30 +145,29 @@ export const translations = {
     // Bottom nav modal
     signInRequired: "Unahitaji Kuingia",
     signInDesc: (section: string) =>
-      `Unahitaji akaunti kupata ${section}. Jiunge kupata mechi bora!`,
+      `Unahitaji akaunti kupata ${section}. Jiunge kuamsha roboti za uchimbaji!`,
     cancel: "Ghairi",
 
     // Home
-    footballMatches: "Mechi za Mpira",
-    topTierFootball: "Michezo ya mpira wa daraja la juu.",
-    live: "Moja kwa Moja",
+    aiMiningBots: "Roboti za AI",
+    topTierBots: "Mifumo ya kiotomatiki ya faida za kila siku.",
+    live: "Hai",
     today: "Leo",
     tomorrow: "Kesho",
-    loadingMatches: "Inapakia mechi za moja kwa moja...",
-    noMatches:
-      "Hakuna mechi zilizopatikana. Wasimamizi watasasisha mechi za leo hivi karibuni!",
-    viewOdds: "Angalia Uwiano & Vidokezo vya Premium",
+    loadingBots: "Inapakia roboti...",
+    noMatches: "Hakuna roboti inayopatikana sasa.",
+    viewBots: "Angalia Roboti Zote",
 
     // Auth
     welcomeBack: "Karibu Tena",
-    signInSubtitle: "Ingia kupata vidokezo vyako vya premium.",
+    signInSubtitle: "Ingia kusimamia roboti zako za uchimbaji.",
     emailAddress: "Anwani ya Barua Pepe",
     password: "Nywila",
     forgotPassword: "Umesahau nywila?",
     signIn: "Ingia",
     noAccount: "Huna akaunti?",
     createAccount: "Fungua Akaunti",
-    joinSubtitle: "Jiunge kupata vidokezo bora vya premium.",
+    joinSubtitle: "Jiunge nasi kupata roboti zenye mavuno makubwa.",
     fullName: "Jina Kamili",
     username: "Jina la Mtumiaji",
     phoneNumber: "Namba ya Simu",
@@ -217,12 +216,12 @@ export const translations = {
     myChannels: "Chaneli Zangu",
     affiliateProgram: "Programu ya Ushirika",
     affiliateDesc:
-      "Alika marafiki wako kwenye Mfalme wa Mikeka na upate kamisheni kwa kila usajili uliofanikiwa!",
+      "Alika marafiki wako kwenye AUTEX AI na upate kamisheni kwa kila roboti inayoamilishwa!",
     openAffiliate: "Fungua Dashibodi ya Ushirika",
-    liveCenter: "Kituo cha Moja kwa Moja",
+    liveCenter: "Roboti za AI",
     liveCenterDesc:
-      "Fuatilia mechi za moja kwa moja kwa mfumo wetu wa kuonyesha na kufuatilia matokeo.",
-    enterLiveCenter: "Ingia Kituo cha Moja kwa Moja",
+      "Fuatilia roboti za kisasa za biashara ya kiotomatiki na faida za kila siku.",
+    enterLiveCenter: "Angalia Roboti",
     logInToView: "Ingia kuona akaunti yako.",
 
     // Language
@@ -231,11 +230,10 @@ export const translations = {
     english: "Kiingereza",
     swahili: "Kiswahili",
 
-    // Betslips
-    premiumBetslips: "Kadi za Dau za Premium",
-    betslipsSubtitle: "Nambari bora za leo zilizochaguliwa kwa mikono.",
-    noBetslips:
-      "Hakuna kadi za dau za premium leo. Angalia tena hivi karibuni!",
+    // Bots Fleet
+    aiBotsFleet: "Roboti za Uchimbaji",
+    botsSubtitle: "Mifumo iliyochaguliwa ya biashara ya kiotomatiki.",
+    noBots: "Hakuna roboti zinazopatikana sasa hivi.",
 
     // Notifications
     notifications: "Arifa",
@@ -250,7 +248,7 @@ export const translations = {
     send: "Tuma",
 
     // Shell search
-    searchPlaceholder: "Tafuta kadi za dau, mechi, au nambari...",
+    searchPlaceholder: "Tafuta roboti za AI au mipango...",
 
     // General
     loading: "Inapakia...",

@@ -272,16 +272,6 @@ function TxModal({ payment, onClose }: { payment: UserPayment & { id: string }; 
           {payment.palmpesaTransid && (
             <DetailRow label="PalmPesa Transid" value={payment.palmpesaTransid} mono />
           )}
-          {payment.betslipId && (
-            <DetailRow
-              label="Linked Betslip"
-              value={
-                <Link to={`/slip/${payment.betslipId}`} style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
-                  View slip →
-                </Link>
-              }
-            />
-          )}
           <DetailRow label="Currency" value={payment.currency} />
           <DetailRow label="Network" value="Mobile Money" />
           <DetailRow label="Fee" value="0.00" />
@@ -298,18 +288,16 @@ function TxModal({ payment, onClose }: { payment: UserPayment & { id: string }; 
           >
             Close
           </button>
-          {payment.betslipId && (
-            <Link
-              to={`/slip/${payment.betslipId}`}
-              style={{
-                flex: 1, padding: "14px 0", borderRadius: 14, border: "none",
-                background: "var(--accent)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
-                textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              View Betslip
-            </Link>
-          )}
+          <Link
+            to="/my-bots"
+            style={{
+              flex: 1, padding: "14px 0", borderRadius: 14, border: "none",
+              background: "var(--accent)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
+              textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            My Bots
+          </Link>
         </div>
       </div>
     </div>

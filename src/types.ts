@@ -1,47 +1,16 @@
-export type Match = {
-  id: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeLogo: string;
-  awayLogo: string;
-  time: string;
-  league: string;
-  status: string;
-  createdAt: number;
-  homeScore: number | null;
-  awayScore: number | null;
-  homeTeamId?: number;
-  awayTeamId?: number;
-  leagueId?: number;
-  season?: number;
-};
-
-export type BetslipResult = "pending" | "won" | "lost";
-
-export type Betslip = {
-  company: string;
-  title: string;
-  cost: number;
-  currency: string;
-  imageUrl: string;
-  expiresAt: number;
-  result: BetslipResult;
-  settledAt?: number | null;
-  createdAt: number;
-  createdBy: string;
-};
-
 export type Purchase = {
   status: "completed" | "pending" | "failed";
   paidAt?: number;
   amount?: number;
   orderId?: string;
   reference?: string;
-  betslipId?: string;
+  botId?: string;
+  movieGroupId?: string;
 };
 
 export type UserPayment = {
-  betslipId: string;
+  botId?: string;
+  betslipId?: string;
   amount: number;
   currency: string;
   status: string;
