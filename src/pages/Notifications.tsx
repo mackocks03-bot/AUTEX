@@ -7,95 +7,143 @@ import { useAuth } from "@/context/AuthContext";
 import type { AppNotification } from "@/types";
 
 function fmt(v: number | string | null | undefined) {
-  if (v === null || v === undefined || v === "") return "—";
+  if (v === null || v === undefined || v === "") return "0.00";
   const n = Number(v);
   return isNaN(n) ? String(v) : n.toFixed(2);
 }
 
-/** Renders the meta details grid for transaction notifications */
-function NotifMeta({ type, meta }: { type?: string; meta?: Record<string, string | number | boolean | null> }) {
-  if (!meta) return null;
+/** Formats all transaction details into one natural, unified paragraph */
+function getNotificationParagraph(n: AppNotification): string {
+  const meta = n.meta;
+  if (!meta) return n.message;
 
-  const rows: { label: string; value: string; highlight?: boolean }[] = [];
-
-  if (type === "deposit_approved" || type === "deposit_rejected") {
-    if (meta.amount != null) rows.push({ label: "Amount", value: `$${fmt(meta.amount as number)} ${meta.currency || "USD"}`, highlight: true });
-    if (meta.network) rows.push({ label: "Network", value: String(meta.network) });
-    if (meta.phone) rows.push({ label: "From Phone", value: String(meta.phone) });
-    if (meta.senderName) rows.push({ label: "Sender Name", value: String(meta.senderName) });
-    if (meta.accountNo) rows.push({ label: "Account No.", value: String(meta.accountNo) });
-    if (meta.botName) rows.push({ label: "Plan / Bot", value: String(meta.botName) });
-    if (meta.reference) rows.push({ label: "Reference ID", value: String(meta.reference).slice(0, 20) });
-    if (type === "deposit_rejected" && meta.reason) rows.push({ label: "Rejection Reason", value: String(meta.reason) });
-    const ts = type === "deposit_approved" ? meta.approvedAt : meta.rejectedAt;
-    if (ts) rows.push({ label: "Processed At", value: new Date(Number(ts)).toLocaleString() });
+  const t = n.type;
+  if (t === "deposit_approved") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} ${meta.currency || "USD"}` : "";
+    const net = meta.network ? ` via ${meta.network}` : "";
+    const acc = meta.accountNo ? ` (Acc: ${meta.accountNo})` : "";
+    const sender = meta.senderName ? ` from ${meta.senderName}` : "";
+    const plan = meta.botName ? ` for ${meta.botName}` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `Your deposit of ${amt}${net}${acc}${sender}${plan} has been approved and credited to your wallet balance.${refId} Happy investing!`;
   }
 
-  if (type === "withdrawal_approved" || type === "withdrawal_rejected") {
-    if (meta.amount != null) rows.push({ label: "Amount", value: `$${fmt(meta.amount as number)} ${meta.currency || "USD"}`, highlight: true });
-    if (meta.fee != null && meta.fee !== 0) rows.push({ label: "Processing Fee", value: `$${fmt(meta.fee as number)}` });
-    if (meta.netAmount != null) rows.push({ label: "Net Received", value: `$${fmt(meta.netAmount as number)}`, highlight: type === "withdrawal_approved" });
-    if (meta.network) rows.push({ label: "Network", value: String(meta.network) });
-    if (meta.destination) rows.push({ label: "Destination", value: String(meta.destination) });
-    if (meta.accountName) rows.push({ label: "Account Name", value: String(meta.accountName) });
-    if (meta.reference) rows.push({ label: "Reference ID", value: String(meta.reference).slice(0, 20) });
-    if (type === "withdrawal_rejected" && meta.reason) rows.push({ label: "Rejection Reason", value: String(meta.reason) });
-    const ts = type === "withdrawal_approved" ? meta.processedAt : meta.rejectedAt;
-    if (ts) rows.push({ label: "Processed At", value: new Date(Number(ts)).toLocaleString() });
+  if (t === "deposit_rejected") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} ${meta.currency || "USD"}` : "";
+    const net = meta.network ? ` via ${meta.network}` : "";
+    const acc = meta.accountNo ? ` (Acc: ${meta.accountNo})` : "";
+    const reason = meta.reason ? ` Reason: ${meta.reason}.` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `Your deposit of ${amt}${net}${acc} was rejected.${reason}${refId} Please contact support if you believe this is an error.`;
   }
 
-  if (type === "commission") {
-    if (meta.commissionAmount != null) rows.push({ label: "Commission Earned", value: `$${fmt(meta.commissionAmount as number)} ${meta.currency || "USD"}`, highlight: true });
-    if (meta.percentage != null) rows.push({ label: "Commission Rate", value: `Level ${meta.level} — ${meta.percentage}%` });
-    if (meta.fromUser) rows.push({ label: "From", value: String(meta.fromUser) });
-    if (meta.depositAmount != null) rows.push({ label: "Their Deposit", value: `$${fmt(meta.depositAmount as number)}` });
-    if (meta.network) rows.push({ label: "Network", value: String(meta.network) });
-    if (meta.depositReference) rows.push({ label: "Deposit Ref.", value: String(meta.depositReference).slice(0, 20) });
-    if (meta.earnedAt) rows.push({ label: "Earned At", value: new Date(Number(meta.earnedAt)).toLocaleString() });
+  if (t === "commission") {
+    const comm = meta.commissionAmount != null ? `$${fmt(meta.commissionAmount)} ${meta.currency || "USD"}` : "";
+    const lvl = meta.level != null ? `Level ${meta.level}` : "";
+    const pct = meta.percentage != null ? ` (${meta.percentage}%)` : "";
+    const from = meta.fromUser ? ` from downline user ${meta.fromUser}` : "";
+    const depAmt = meta.depositAmount != null ? ` on their deposit of $${fmt(meta.depositAmount)}` : "";
+    const net = meta.network ? ` via ${meta.network}` : "";
+    const refId = meta.depositReference ? ` Ref: ${String(meta.depositReference).slice(0, 16)}.` : "";
+    return `You earned a ${lvl} referral commission of ${comm}${pct}${from}${depAmt}${net}.${refId}`;
   }
 
-  if (type === "balance_adjustment") {
-    if (meta.amount != null) rows.push({ label: "Amount Adjusted", value: `$${fmt(meta.amount as number)}`, highlight: true });
-    if (meta.newBalance != null) rows.push({ label: "New Wallet Balance", value: `$${fmt(meta.newBalance as number)}` });
-    if (meta.reason) rows.push({ label: "Reason / Note", value: String(meta.reason) });
-    if (meta.reference) rows.push({ label: "Reference ID", value: String(meta.reference).slice(0, 20) });
-    if (meta.processedAt) rows.push({ label: "Processed At", value: new Date(Number(meta.processedAt)).toLocaleString() });
+  if (t === "withdrawal_approved") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} ${meta.currency || "USD"}` : "";
+    const dest = meta.destination ? ` to ${meta.destination}` : "";
+    const net = meta.network ? ` via ${meta.network}` : "";
+    const feeInfo = meta.fee && Number(meta.fee) > 0 ? ` (Net: $${fmt(meta.netAmount)}, Fee: $${fmt(meta.fee)})` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `Your withdrawal payout of ${amt}${dest}${net}${feeInfo} has been approved and processed successfully.${refId}`;
   }
 
-  if (!rows.length) return null;
+  if (t === "withdrawal_rejected") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} ${meta.currency || "USD"}` : "";
+    const dest = meta.destination ? ` to ${meta.destination}` : "";
+    const reason = meta.reason ? ` Reason: ${meta.reason}.` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `Your withdrawal request of ${amt}${dest} was rejected.${reason}${refId} Please contact support for assistance.`;
+  }
 
+  if (t === "balance_adjustment") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} USD` : "";
+    const newBal = meta.newBalance != null ? ` New balance: $${fmt(meta.newBalance)} USD.` : "";
+    const reason = meta.reason ? ` Note: ${meta.reason}.` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `Your wallet balance has been adjusted with ${amt} by administrator.${newBal}${reason}${refId}`;
+  }
+
+  return n.message;
+}
+
+/** Placeholder skeleton card displayed while loading data */
+function NotificationSkeleton() {
   return (
-    <div style={{
-      marginTop: 10,
-      borderRadius: 10,
-      overflow: "hidden",
-      border: "1px solid var(--stroke)",
-      fontSize: 13,
-    }}>
-      {rows.map((row, i) => (
+    <div
+      className="neu-card"
+      style={{
+        padding: "16px 18px",
+        borderRadius: 16,
+        border: "1px solid var(--stroke)",
+        background: "var(--bg1, #1e293b)",
+      }}
+    >
+      <div className="row" style={{ gap: 14, alignItems: "flex-start" }}>
+        {/* Pulsing icon skeleton */}
         <div
-          key={i}
+          className="skeleton-pulse"
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 8,
-            padding: "7px 12px",
-            background: i % 2 === 0 ? "rgba(0,0,0,0.04)" : "transparent",
-            borderTop: i === 0 ? "none" : "1px solid var(--stroke)",
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            flexShrink: 0,
+            background: "rgba(255, 255, 255, 0.08)",
           }}
-        >
-          <span style={{ color: "var(--muted)", whiteSpace: "nowrap" }}>{row.label}</span>
-          <span style={{
-            fontWeight: row.highlight ? 700 : 500,
-            color: row.highlight ? "var(--accent)" : "var(--text)",
-            textAlign: "right",
-            wordBreak: "break-all",
-          }}>
-            {row.value}
-          </span>
+        />
+        {/* Pulsing content lines */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Title skeleton */}
+          <div
+            className="skeleton-pulse"
+            style={{
+              width: "40%",
+              height: 16,
+              borderRadius: 6,
+              background: "rgba(255, 255, 255, 0.09)",
+            }}
+          />
+          {/* One-paragraph message skeletons */}
+          <div
+            className="skeleton-pulse"
+            style={{
+              width: "95%",
+              height: 13,
+              borderRadius: 5,
+              background: "rgba(255, 255, 255, 0.07)",
+            }}
+          />
+          <div
+            className="skeleton-pulse"
+            style={{
+              width: "75%",
+              height: 13,
+              borderRadius: 5,
+              background: "rgba(255, 255, 255, 0.07)",
+            }}
+          />
+          {/* Date skeleton */}
+          <div
+            className="skeleton-pulse"
+            style={{
+              width: "25%",
+              height: 11,
+              borderRadius: 4,
+              marginTop: 2,
+              background: "rgba(255, 255, 255, 0.06)",
+            }}
+          />
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -105,6 +153,8 @@ export default function Notifications() {
   const [globalNotifs, setGlobalNotifs] = useState<AppNotification[]>([]);
   const [personalNotifs, setPersonalNotifs] = useState<AppNotification[]>([]);
   const [reads, setReads] = useState<Record<string, boolean>>({});
+  const [loadingGlobal, setLoadingGlobal] = useState(true);
+  const [loadingPersonal, setLoadingPersonal] = useState(true);
 
   // Global broadcast notifications
   useEffect(() => {
@@ -120,12 +170,16 @@ export default function Notifications() {
       } else {
         setGlobalNotifs([]);
       }
+      setLoadingGlobal(false);
     });
   }, []);
 
   // Personal per-user notifications (from admin actions)
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoadingPersonal(false);
+      return;
+    }
     const r = ref(db, `userNotifications/${user.uid}`);
     return onValue(r, (snap) => {
       const data = snap.val() as Record<string, AppNotification> | null;
@@ -138,6 +192,7 @@ export default function Notifications() {
       } else {
         setPersonalNotifs([]);
       }
+      setLoadingPersonal(false);
     });
   }, [user]);
 
@@ -185,13 +240,14 @@ export default function Notifications() {
     );
   }
 
+  const isLoading = loadingGlobal || loadingPersonal;
   const unreadCount = notifications.filter((n) => n.id && !reads[n.id]).length;
 
   return (
     <Shell>
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Notifications</h1>
-        {unreadCount > 0 && (
+        {!isLoading && unreadCount > 0 && (
           <button className="neu-btn btn-ghost" onClick={() => void markAllAsRead()}>
             Mark all as read
           </button>
@@ -199,88 +255,128 @@ export default function Notifications() {
       </div>
 
       <div className="grid" style={{ gap: 12 }}>
-        {notifications.map((n) => {
-          const isUnread = n.id && !reads[n.id];
-          const typeIcon =
-            n.type === "deposit_approved" ? "✅" :
-            n.type === "deposit_rejected" ? "❌" :
-            n.type === "commission" ? "💰" :
-            n.type === "withdrawal_approved" ? "💸" :
-            n.type === "withdrawal_rejected" ? "🚫" :
-            n.type === "balance_adjustment" ? "💵" :
-            n.type === "broadcast" ? "📢" : "🔔";
+        {/* Loading skeleton state */}
+        {isLoading && (
+          <>
+            <NotificationSkeleton />
+            <NotificationSkeleton />
+            <NotificationSkeleton />
+            <NotificationSkeleton />
+          </>
+        )}
 
-          const iconBg =
-            n.type === "deposit_approved" ? "rgba(0,166,81,0.15)" :
-            n.type === "deposit_rejected" ? "rgba(239,68,68,0.15)" :
-            n.type === "commission" ? "rgba(234,179,8,0.15)" :
-            n.type === "withdrawal_approved" ? "rgba(56,189,248,0.15)" :
-            n.type === "withdrawal_rejected" ? "rgba(239,68,68,0.15)" :
-            n.type === "balance_adjustment" ? "rgba(16,185,129,0.15)" :
-            "rgba(99,102,241,0.15)";
+        {/* Loaded notifications */}
+        {!isLoading &&
+          notifications.map((n) => {
+            const isUnread = n.id && !reads[n.id];
+            const typeIcon =
+              n.type === "deposit_approved" ? "✅" :
+              n.type === "deposit_rejected" ? "❌" :
+              n.type === "commission" ? "💰" :
+              n.type === "withdrawal_approved" ? "💸" :
+              n.type === "withdrawal_rejected" ? "🚫" :
+              n.type === "balance_adjustment" ? "💵" :
+              n.type === "broadcast" ? "📢" : "🔔";
 
-          return (
-            <div
-              key={n.id}
-              className="neu-card"
-              style={{
-                cursor: isUnread ? "pointer" : "default",
-                borderColor: isUnread ? "var(--accent)" : "var(--stroke)",
-                background: isUnread ? "rgba(56, 189, 248, 0.04)" : undefined,
-              }}
-              onClick={() => {
-                if (isUnread && n.id) {
-                  void markAsRead(n.id);
-                }
-              }}
-            >
-              <div className="card-body">
-                {/* Header row */}
-                <div className="row" style={{ gap: 14, alignItems: "flex-start" }}>
-                  {/* Icon or image */}
-                  {n.imageUrl ? (
-                    <img
-                      src={n.imageUrl}
-                      alt=""
-                      style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-                      background: iconBg,
-                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
-                    }}>
-                      {typeIcon}
-                    </div>
-                  )}
+            const iconBg =
+              n.type === "deposit_approved" ? "rgba(0,166,81,0.15)" :
+              n.type === "deposit_rejected" ? "rgba(239,68,68,0.15)" :
+              n.type === "commission" ? "rgba(234,179,8,0.15)" :
+              n.type === "withdrawal_approved" ? "rgba(56,189,248,0.15)" :
+              n.type === "withdrawal_rejected" ? "rgba(239,68,68,0.15)" :
+              n.type === "balance_adjustment" ? "rgba(16,185,129,0.15)" :
+              "rgba(99,102,241,0.15)";
 
-                  {/* Title + message */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: isUnread ? "var(--text)" : "var(--muted)" }}>
-                        {n.title}
+            const paragraphMessage = getNotificationParagraph(n);
+
+            return (
+              <div
+                key={n.id}
+                className="neu-card"
+                style={{
+                  cursor: isUnread ? "pointer" : "default",
+                  borderColor: isUnread ? "var(--accent)" : "var(--stroke)",
+                  background: isUnread ? "rgba(56, 189, 248, 0.04)" : undefined,
+                  transition: "all 0.2s ease",
+                }}
+                onClick={() => {
+                  if (isUnread && n.id) {
+                    void markAsRead(n.id);
+                  }
+                }}
+              >
+                <div className="card-body">
+                  <div className="row" style={{ gap: 14, alignItems: "flex-start" }}>
+                    {/* Icon or image */}
+                    {n.imageUrl ? (
+                      <img
+                        src={n.imageUrl}
+                        alt=""
+                        style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          flexShrink: 0,
+                          background: iconBg,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 24,
+                        }}
+                      >
+                        {typeIcon}
                       </div>
-                      {isUnread && (
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-                      )}
-                    </div>
-                    <div style={{ color: "var(--muted)", fontSize: 13.5, lineHeight: 1.5, marginBottom: 4 }}>
-                      {n.message}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: "var(--muted)", opacity: 0.7 }}>
-                      {new Date(n.createdAt).toLocaleString()}
+                    )}
+
+                    {/* Content: Title, single paragraph message, and timestamp */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: isUnread ? "var(--text)" : "var(--muted)" }}>
+                          {n.title}
+                        </div>
+                        {isUnread && (
+                          <div
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: "var(--accent)",
+                              boxShadow: "0 0 6px var(--accent)",
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Unified single-paragraph details */}
+                      <p
+                        style={{
+                          margin: "0 0 6px 0",
+                          color: "var(--text)",
+                          fontSize: 13.5,
+                          lineHeight: 1.55,
+                          opacity: isUnread ? 1 : 0.85,
+                        }}
+                      >
+                        {paragraphMessage}
+                      </p>
+
+                      <div style={{ fontSize: 11.5, color: "var(--muted)", opacity: 0.7 }}>
+                        {new Date(n.createdAt).toLocaleString()}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Detail meta grid */}
-                <NotifMeta type={n.type} meta={n.meta} />
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {!notifications.length && (
+        {/* Empty state */}
+        {!isLoading && !notifications.length && (
           <div className="neu-card">
             <div className="card-body" style={{ textAlign: "center", padding: "40px 20px" }}>
               <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📭</div>
@@ -290,6 +386,24 @@ export default function Notifications() {
           </div>
         )}
       </div>
+
+      {/* Shimmer pulse animation for skeletons */}
+      <style>{`
+        @keyframes skeletonShimmer {
+          0% {
+            opacity: 0.35;
+          }
+          50% {
+            opacity: 0.85;
+          }
+          100% {
+            opacity: 0.35;
+          }
+        }
+        .skeleton-pulse {
+          animation: skeletonShimmer 1.4s ease-in-out infinite;
+        }
+      `}</style>
     </Shell>
   );
 }

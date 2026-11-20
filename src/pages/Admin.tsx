@@ -229,7 +229,7 @@ export default function Admin() {
           await sendUserNotification(
             editingUser.uid,
             "💵 Balance Credited",
-            `Your wallet balance has been credited with +$${fmt(diff)} by administrator. ${editBalanceReason.trim() ? `Note: ${editBalanceReason.trim()}` : ""}`,
+            `Your wallet balance has been credited with +$${fmt(diff)} USD by administrator. New balance: $${fmt(targetBal)} USD.${editBalanceReason.trim() ? ` Note: ${editBalanceReason.trim()}.` : ""} Ref: ${adjRef.key.slice(0, 16)}.`,
             "balance_adjustment",
             {
               amount: diff,
@@ -253,7 +253,7 @@ export default function Admin() {
           await sendUserNotification(
             editingUser.uid,
             "📉 Balance Adjusted",
-            `Your wallet balance has been adjusted with -$${fmt(Math.abs(diff))} by administrator. ${editBalanceReason.trim() ? `Note: ${editBalanceReason.trim()}` : ""}`,
+            `Your wallet balance has been adjusted with -$${fmt(Math.abs(diff))} USD by administrator. New balance: $${fmt(targetBal)} USD.${editBalanceReason.trim() ? ` Note: ${editBalanceReason.trim()}.` : ""} Ref: ${dedRef.key.slice(0, 16)}.`,
             "balance_adjustment",
             {
               amount: Math.abs(diff),
@@ -511,7 +511,7 @@ export default function Admin() {
           await sendUserNotification(
             w.uid,
             "💸 Withdrawal Approved",
-            `Your withdrawal of $${fmt(w.amount)} to ${w.destination} has been approved and processed successfully.`,
+            `Your withdrawal payout of $${fmt(w.amount)} ${w.currency || "USD"}${w.destination ? ` to ${w.destination}` : ""}${w.networkName || w.network ? ` via ${w.networkName || w.network}` : ""}${w.fee ? ` (Net: $${fmt(w.amount - w.fee)}, Fee: $${fmt(w.fee)})` : ""} has been approved and processed successfully. Ref: ${w.key.slice(0, 16)}.`,
             "withdrawal_approved",
             {
               amount: w.amount,
@@ -560,7 +560,7 @@ export default function Admin() {
           await sendUserNotification(
             w.uid,
             "🚫 Withdrawal Rejected",
-            `Your withdrawal request of $${fmt(w.amount)} has been rejected. Reason: ${(reason || "").trim() || "Please contact support for details."}`,
+            `Your withdrawal request of $${fmt(w.amount)} ${w.currency || "USD"}${w.destination ? ` to ${w.destination}` : ""} has been rejected. Reason: ${(reason || "").trim() || "Verification issue or invalid destination details"}. Ref: ${w.key.slice(0, 16)}.`,
             "withdrawal_rejected",
             {
               amount: w.amount,
@@ -676,7 +676,7 @@ export default function Admin() {
               await sendUserNotification(
                 tier.uid,
                 "💰 Commission Earned!",
-                `You earned a Level ${tier.level} referral commission of $${commAmt.toFixed(2)} (${tier.pct}%) from ${depositorPhone}'s deposit of $${depositAmount.toFixed(2)}.`,
+                `You earned a Level ${tier.level} referral commission of $${commAmt.toFixed(2)} ${p.currency || "USD"} (${tier.pct}%) from downline user ${depositorPhone}'s deposit of $${depositAmount.toFixed(2)}${p.networkName || p.network ? ` via ${p.networkName || p.network}` : ""}. Ref: ${p.key.slice(0, 16)}.`,
                 "commission",
                 {
                   commissionAmount: commAmt,
@@ -706,7 +706,7 @@ export default function Admin() {
           await sendUserNotification(
             p.uid,
             "✅ Deposit Approved",
-            `Your deposit of $${fmt(depositAmount)} has been approved and credited to your wallet. Happy investing!`,
+            `Your deposit of $${fmt(depositAmount)} ${p.currency || "USD"}${p.networkName || p.network ? ` via ${p.networkName || p.network}` : ""}${p.accountNo ? ` (Acc: ${p.accountNo})` : ""}${p.senderName ? ` from ${p.senderName}` : ""} has been approved and credited to your wallet balance. Ref: ${p.key.slice(0, 16)}. Happy investing!`,
             "deposit_approved",
             {
               amount: depositAmount,
@@ -807,7 +807,7 @@ export default function Admin() {
           await sendUserNotification(
             p.uid,
             "❌ Deposit Rejected",
-            `Your deposit of $${fmt(p.amount)} has been rejected. Reason: ${(reason || "").trim() || "Invalid payment proof or funds not received. Please contact support."}`,
+            `Your deposit of $${fmt(p.amount)} ${p.currency || "USD"}${p.networkName || p.network ? ` via ${p.networkName || p.network}` : ""}${p.accountNo ? ` (Acc: ${p.accountNo})` : ""} has been rejected. Reason: ${(reason || "").trim() || "Invalid payment proof or funds not received"}. Ref: ${p.key.slice(0, 16)}.`,
             "deposit_rejected",
             {
               amount: p.amount,
