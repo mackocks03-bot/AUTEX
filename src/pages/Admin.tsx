@@ -442,17 +442,65 @@ export default function Admin() {
     }
   }
 
+  /* ── Helper: Revoke/Clawback Commissions for a Deposit ──────── */
+  async function revokeCommissionsForDeposit(p: PaymentItem) {
+    try {
+      // 1. Fetch depositor's user profile to get uplines
+      const userSnap = await get(ref(db, `users/${p.uid}`));
+      const uplineUids: string[] = [];
+      if (userSnap.exists()) {
+        const u = userSnap.val();
+        if (u.referredBy) uplineUids.push(u.referredBy);
+        if (u.referredByL2) uplineUids.push(u.referredByL2);
+        if (u.referredByL3) uplineUids.push(u.referredByL3);
+      }
+
+      // 2. Remove commissions from userPayments & referralEarnings for each upline
+      for (const uplineUid of uplineUids) {
+        // Remove matching commission entries from userPayments
+        const pSnap = await get(ref(db, `userPayments/${uplineUid}`));
+        if (pSnap.exists()) {
+          const pays = pSnap.val();
+          for (const [key, val] of Object.entries(pays as Record<string, any>)) {
+            if (val?.depositKey === p.key || (val?.type === "referral_commission" && val?.fromUid === p.uid && Number(val?.depositAmount) === Number(p.amount))) {
+              await remove(ref(db, `userPayments/${uplineUid}/${key}`));
+            }
+          }
+        }
+
+        // Remove matching entries from referralEarnings
+        const eSnap = await get(ref(db, `referralEarnings/${uplineUid}`));
+        if (eSnap.exists()) {
+          const earns = eSnap.val();
+          for (const [key, val] of Object.entries(earns as Record<string, any>)) {
+            if (val?.depositKey === p.key || (val?.fromUid === p.uid && Number(val?.depositAmount) === Number(p.amount))) {
+              await remove(ref(db, `referralEarnings/${uplineUid}/${key}`));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Error revoking commissions:", err);
+    }
+  }
+
   async function handleRejectDeposit(p: PaymentItem) {
     const reason = prompt("Enter reason for rejection (optional):", "Invalid payment proof or funds not received");
     if (reason === null) return;
     setProcessingKey(p.key);
     try {
+      // If commissions were previously processed for this deposit, revoke them immediately
+      if (p.commissionProcessed || p.status === "completed") {
+        await revokeCommissionsForDeposit(p);
+      }
+
       await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
         status: "rejected",
         rejectedAt: Date.now(),
+        commissionProcessed: false,
         adminNote: reason.trim() || "Rejected by administrator",
       });
-      showMsg(`Deposit of $${fmt(p.amount)} rejected. ❌`, "err");
+      showMsg(`Deposit of $${fmt(p.amount)} rejected and commissions cancelled (if any). ❌`, "err");
       if (selectedPayment?.key === p.key) {
         setSelectedPayment(null);
       }
@@ -469,8 +517,13 @@ export default function Admin() {
     }
     setProcessingKey(p.key);
     try {
+      // If commissions were previously processed for this deposit, revoke them as well
+      if (p.commissionProcessed || p.status === "completed") {
+        await revokeCommissionsForDeposit(p);
+      }
+
       await remove(ref(db, `userPayments/${p.uid}/${p.key}`));
-      showMsg("Deposit record permanently deleted. 🗑️");
+      showMsg("Deposit record permanently deleted and commissions cleaned up. 🗑️");
       if (selectedPayment?.key === p.key) {
         setSelectedPayment(null);
       }
