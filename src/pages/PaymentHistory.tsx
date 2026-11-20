@@ -281,17 +281,19 @@ function TxRow({
 function DetailRow({ label, value, mono, highlight }: { label: string; value: React.ReactNode; mono?: boolean; highlight?: boolean }) {
   return (
     <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-      padding: "11px 0", borderBottom: "1px solid var(--stroke)", gap: 12,
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 10,
     }}>
-      <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, flexShrink: 0 }}>{label}</span>
       <span style={{
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: highlight ? 800 : 600,
         color: highlight ? "var(--accent)" : "var(--text)",
         textAlign: "right",
         fontFamily: mono ? "monospace" : undefined,
-        wordBreak: "break-all",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
       }}>{value}</span>
     </div>
   );
@@ -310,10 +312,10 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
   const isDebit = isWithdrawal || (isBot && item.type !== "bot_reward") || (isAdjustment && item.amount < 0);
 
   const title =
-    isBot ? (item.type === "bot_reward" ? "Mining Yield Details" : "Bot Activation Details") :
-    isCommission ? "Commission Details" :
-    isWithdrawal ? "Withdrawal Details" :
-    isAdjustment ? "Adjustment Details" : "Deposit Details";
+    isBot ? (item.type === "bot_reward" ? "Mining Yield" : "Bot Activation") :
+    isCommission ? "Referral Commission" :
+    isWithdrawal ? "Withdrawal Payout" :
+    isAdjustment ? "Balance Adjustment" : "Deposit";
 
   return (
     <div
@@ -321,8 +323,8 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
         position: "fixed",
         inset: 0,
         zIndex: 99999,
-        background: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(6px)",
+        background: "rgba(0,0,0,0.6)",
+        backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
@@ -333,77 +335,77 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
         onClick={e => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 480,
+          maxWidth: 440,
           background: "var(--bg1)",
-          borderRadius: "24px 24px 0 0",
+          borderRadius: "20px 20px 0 0",
           border: "1px solid var(--stroke)",
-          boxShadow: "0 -20px 60px rgba(0,0,0,0.4)",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          animation: "slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxShadow: "0 -16px 40px rgba(0,0,0,0.35)",
+          animation: "slideUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         <style>{`
           @keyframes slideUpModal {
-            from { transform: translateY(60px); opacity: 0; }
+            from { transform: translateY(40px); opacity: 0; }
             to   { transform: translateY(0); opacity: 1; }
           }
         `}</style>
 
         {/* Handle bar */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-          <div style={{ width: 40, height: 4, borderRadius: 999, background: "rgba(0,0,0,0.18)" }} />
+        <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 6px" }}>
+          <div style={{ width: 34, height: 3.5, borderRadius: 999, background: "rgba(255,255,255,0.2)" }} />
         </div>
 
-        {/* Amount Hero */}
-        <div style={{ textAlign: "center", padding: "20px 24px 18px" }}>
-          <div style={{
-            width: 56,
-            height: 56,
-            borderRadius: 18,
-            margin: "0 auto 12px",
-            background:
-              isBot ? "rgba(168,85,247,0.15)" :
-              isCommission ? "rgba(250,204,21,0.15)" :
-              isWithdrawal ? "rgba(56,189,248,0.15)" :
-              m.bg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 26,
-          }}>
-            {isBot ? "🤖" : isCommission ? "💰" : isWithdrawal ? "📤" : isAdjustment ? "⚖️" : "📥"}
+        {/* Top Header Row: Horizontal, Ultra-Compact */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 12px",
+          background: "var(--bg2)",
+          borderRadius: 14,
+          margin: "0 14px 8px",
+          border: "1px solid var(--stroke)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background:
+                isBot ? "rgba(168,85,247,0.15)" :
+                isCommission ? "rgba(250,204,21,0.15)" :
+                isWithdrawal ? "rgba(56,189,248,0.15)" :
+                m.bg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              flexShrink: 0,
+            }}>
+              {isBot ? "🤖" : isCommission ? "💰" : isWithdrawal ? "📤" : isAdjustment ? "⚖️" : "📥"}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {title}
+              </div>
+              <div style={{ marginTop: 2 }}>
+                <StatusBadge status={item.status} />
+              </div>
+            </div>
           </div>
 
-          <div style={{ fontSize: 11, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: "var(--text)", letterSpacing: "-0.03em" }}>
-            {isDebit ? "-" : "+"}${fmt(Math.abs(item.amount))}
-            <span style={{ fontSize: 15, fontWeight: 600, color: "var(--muted)", marginLeft: 6 }}>
+          <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 8 }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: isDebit ? "#f6465d" : isCommission ? "#facc15" : isBot ? "#a855f7" : "#0ecb81", letterSpacing: "-0.02em" }}>
+              {isDebit ? "-" : "+"}${fmt(Math.abs(item.amount))}
+            </div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--muted)" }}>
               {item.currency || "USD"}
-            </span>
-          </div>
-          <div style={{ marginTop: 8 }}>
-            <StatusBadge status={item.status} />
+            </div>
           </div>
         </div>
-
-        {/* Divider */}
-        <div style={{ height: 1, background: "var(--stroke)", margin: "0 20px" }} />
 
         {/* Details list */}
-        <div style={{ padding: "4px 24px 20px" }}>
-          <DetailRow
-            label="Category"
-            value={
-              isBot ? (item.type === "bot_reward" ? "AI Mining Yield" : "AI Bot Activation") :
-              isCommission ? "Referral Commission" :
-              isWithdrawal ? "Withdrawal Payout" :
-              isAdjustment ? "Balance Adjustment" : "Deposit"
-            }
-            highlight
-          />
+        <div style={{ padding: "0 16px 8px" }}>
           <DetailRow label="Date & Time" value={fmtDateTime(Number(item.createdAt))} />
           <DetailRow label="Reference ID" value={shortRef(ref)} mono />
 
@@ -411,7 +413,7 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
           {isBot && (
             <>
               {item.botName && <DetailRow label="Bot Name" value={item.botName} highlight />}
-              {item.destination && <DetailRow label="Target Fleet" value={item.destination} />}
+              {item.destination && <DetailRow label="Fleet" value={item.destination} />}
             </>
           )}
 
@@ -421,18 +423,15 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
               {item.network && <DetailRow label="Network" value={item.network} />}
               {item.accountName && <DetailRow label="Account Name" value={item.accountName} />}
               {item.fee != null && Number(item.fee) > 0 && <DetailRow label="Fee" value={`$${fmt(item.fee)}`} />}
-              {item.fee != null && (
-                <DetailRow label="Net Received" value={`$${fmt(Math.max(0, item.amount - (item.fee || 0)))}`} highlight />
-              )}
             </>
           )}
 
           {isDeposit && (
             <>
               {item.network && <DetailRow label="Network" value={item.network} />}
-              {item.accountNo && <DetailRow label="Sender Phone" value={item.accountNo} />}
+              {item.accountNo && <DetailRow label="Account / Phone" value={item.accountNo} />}
               {item.senderName && <DetailRow label="Sender Name" value={item.senderName} />}
-              {item.botName && <DetailRow label="Plan / Bot" value={item.botName} />}
+              {item.botName && <DetailRow label="Bot / Plan" value={item.botName} />}
             </>
           )}
 
@@ -448,24 +447,24 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
             <DetailRow label="Admin Note" value={item.adminNote} />
           )}
 
-          {item.description && !item.adminNote && !isCommission && (
+          {item.description && !item.adminNote && !isCommission && !isBot && (
             <DetailRow label="Description" value={item.description} />
           )}
         </div>
 
         {/* Action Button */}
-        <div style={{ padding: "0 20px 28px", display: "flex", gap: 10 }}>
+        <div style={{ padding: "0 14px 14px", display: "flex", gap: 8 }}>
           <button
             onClick={onClose}
             style={{
               flex: 1,
-              padding: "13px 0",
-              borderRadius: 12,
+              height: 38,
+              borderRadius: 10,
               border: "1px solid var(--stroke)",
               background: "var(--bg2)",
               color: "var(--text)",
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
@@ -475,13 +474,13 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
             to={isBot ? "/my-bots" : isCommission ? "/affiliate" : isWithdrawal ? "/withdraw" : "/deposit"}
             style={{
               flex: 1.2,
-              padding: "13px 0",
-              borderRadius: 12,
+              height: 38,
+              borderRadius: 10,
               border: "none",
               background: "var(--accent)",
               color: "#fff",
               fontWeight: 800,
-              fontSize: 14,
+              fontSize: 13,
               cursor: "pointer",
               textDecoration: "none",
               display: "flex",

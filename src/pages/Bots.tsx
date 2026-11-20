@@ -48,16 +48,18 @@ function ConfirmSheet({ bot, balance, open, closing, onConfirm, onClose, submitt
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         background: "var(--bg1)",
-        borderRadius: "22px 22px 0 0",
+        borderRadius: "20px 20px 0 0",
         zIndex: 1001,
-        animation: closing ? "sheetOut .25s ease forwards" : "sheetIn .28s ease forwards",
+        maxWidth: 440,
+        margin: "0 auto",
+        animation: closing ? "sheetOut .22s ease forwards" : "sheetIn .24s ease forwards",
         boxShadow: "0 -8px 36px rgba(0,0,0,0.22), -4px -4px 14px rgba(255,255,255,0.8)",
         border: "1px solid rgba(255,255,255,0.6)",
       }}>
         {/* Handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 4px" }}>
           <div style={{
-            width: 38, height: 4, borderRadius: 2,
+            width: 34, height: 3.5, borderRadius: 2,
             background: "var(--stroke)",
             boxShadow: "inset 1px 1px 2px rgba(163,177,198,0.4), inset -1px -1px 2px rgba(255,255,255,0.8)"
           }} />
@@ -65,39 +67,39 @@ function ConfirmSheet({ bot, balance, open, closing, onConfirm, onClose, submitt
 
         {done ? (
           /* ── Success ── */
-          <div style={{ textAlign: "center", padding: "14px 24px 28px" }}>
+          <div style={{ textAlign: "center", padding: "8px 18px 16px" }}>
             <div style={{
-              width: 54, height: 54, borderRadius: "50%",
+              width: 44, height: 44, borderRadius: "50%",
               background: "linear-gradient(135deg,#00a651,#007a3c)",
               display: "inline-flex", alignItems: "center", justifyContent: "center",
-              marginBottom: 10,
-              boxShadow: "0 6px 18px rgba(0,166,81,0.4), -3px -3px 8px rgba(255,255,255,0.8)",
-              animation: "botPop .4s ease forwards",
+              marginBottom: 8,
+              boxShadow: "0 4px 14px rgba(0,166,81,0.4)",
+              animation: "botPop .35s ease forwards",
             }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "checkPop .3s ease .15s both" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "checkPop .25s ease .1s both" }}>
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", marginBottom: 3 }}>
               {bot.name} Activated! 🎉
             </div>
-            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5 }}>
-              Daily return of <strong style={{ color: "#00a651" }}>${fmtFull(dailyReturn)} ({bot.dailyPct}%)</strong> will arrive during the 1:00 PM – 2:00 PM window.
+            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 14, lineHeight: 1.4 }}>
+              Daily return of <strong style={{ color: "#00a651" }}>${fmtFull(dailyReturn)} ({bot.dailyPct}%)</strong> arrives during the 1:00 PM – 2:00 PM window.
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={onClose} style={{
-                flex: 1, height: 44, borderRadius: 12, border: "1px solid var(--stroke)",
-                background: "var(--bg2)", color: "var(--muted)", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                flex: 1, height: 38, borderRadius: 10, border: "1px solid var(--stroke)",
+                background: "var(--bg2)", color: "var(--muted)", fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}>
                 Close
               </button>
               <Link to="/my-bots" style={{
-                flex: 2, height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,0.3)",
+                flex: 2, height: 38, borderRadius: 10, border: "1px solid rgba(255,255,255,0.3)",
                 background: "linear-gradient(135deg,#00a651,#007a3c)",
-                color: "#fff", fontSize: 14, fontWeight: 800,
+                color: "#fff", fontSize: 13, fontWeight: 800,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 textDecoration: "none", gap: 6,
-                boxShadow: "0 4px 14px rgba(0,166,81,0.35)",
+                boxShadow: "0 3px 10px rgba(0,166,81,0.35)",
               }}>
                 <span>View in My Bots →</span>
               </Link>
@@ -105,67 +107,66 @@ function ConfirmSheet({ bot, balance, open, closing, onConfirm, onClose, submitt
           </div>
         ) : insufficient ? (
           /* ── Insufficient Balance State ── */
-          <div style={{ padding: "8px 18px 24px" }}>
+          <div style={{ padding: "4px 14px 16px" }}>
             <div style={{
-              borderRadius: 16,
-              padding: "16px 14px",
+              borderRadius: 14,
+              padding: "12px 10px",
               background: "var(--bg2)",
               border: "1px solid rgba(239,68,68,0.3)",
               boxShadow: "inset 2px 2px 6px rgba(163,177,198,0.35), inset -2px -2px 6px rgba(255,255,255,0.8)",
               textAlign: "center",
-              marginBottom: 14,
+              marginBottom: 10,
             }}>
               <div style={{
-                width: 44, height: 44, borderRadius: "50%",
+                width: 36, height: 36, borderRadius: "50%",
                 background: "rgba(239,68,68,0.12)",
                 color: "#ef4444",
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
-                marginBottom: 8,
+                marginBottom: 6,
                 boxShadow: "-2px -2px 6px rgba(255,255,255,0.9), 2px 2px 6px rgba(163,177,198,0.4)",
               }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#ef4444", marginBottom: 4 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: "#ef4444", marginBottom: 3 }}>
                 Insufficient Balance
               </div>
-              <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5, marginBottom: 8 }}>
-                Please fund your account to activate <strong>{bot.name}</strong>.
+              <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.4, marginBottom: 8 }}>
+                Fund your account to activate <strong>{bot.name}</strong>.
               </div>
               <div style={{
-                display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "6px 12px", borderRadius: 10,
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "4px 10px", borderRadius: 8,
                 background: "var(--bg1)",
-                boxShadow: "-2px -2px 5px rgba(255,255,255,0.9), 2px 2px 5px rgba(163,177,198,0.35)",
-                fontSize: 12, color: "var(--muted)",
+                boxShadow: "-1px -1px 3px rgba(255,255,255,0.9), 1px 1px 3px rgba(163,177,198,0.35)",
+                fontSize: 11.5, color: "var(--muted)",
               }}>
-                <span>Required: <strong style={{ color: "var(--text)" }}>${fmtFull(amount)}</strong></span>
+                <span>Need: <strong style={{ color: "var(--text)" }}>${fmtFull(amount)}</strong></span>
                 <span>•</span>
-                <span>Available: <strong style={{ color: "#ef4444" }}>${fmtFull(balance)}</strong></span>
+                <span>Have: <strong style={{ color: "#ef4444" }}>${fmtFull(balance)}</strong></span>
               </div>
             </div>
 
             {/* Actions */}
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={onClose} style={{
-                flex: 1, height: 44, borderRadius: 12,
+                flex: 1, height: 38, borderRadius: 10,
                 border: "1px solid rgba(255,255,255,0.7)", background: "var(--bg2)",
-                color: "var(--muted)", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                boxShadow: "-2px -2px 6px rgba(255,255,255,0.9), 2px 2px 6px rgba(163,177,198,0.4)",
+                color: "var(--muted)", fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}>
                 Cancel
               </button>
               <Link to="/deposit" style={{
-                flex: 2, height: 44, borderRadius: 12,
+                flex: 2, height: 38, borderRadius: 10,
                 background: "linear-gradient(135deg, #00a651 0%, #007a3c 100%)",
-                color: "#fff", fontSize: 14, fontWeight: 800,
+                color: "#fff", fontSize: 13, fontWeight: 800,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 gap: 6, textDecoration: "none",
-                boxShadow: "0 4px 14px rgba(0,166,81,0.35), -2px -2px 6px rgba(255,255,255,0.5)",
+                boxShadow: "0 3px 10px rgba(0,166,81,0.35)",
               }}>
                 <span>Fund Account</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 5v14M5 12l7 7 7-7"/>
                 </svg>
               </Link>
@@ -173,42 +174,42 @@ function ConfirmSheet({ bot, balance, open, closing, onConfirm, onClose, submitt
           </div>
         ) : (
           /* ── Normal Confirmation State ── */
-          <div style={{ padding: "4px 18px 24px" }}>
+          <div style={{ padding: "2px 14px 14px" }}>
             {/* Bot row */}
             <div style={{
-              borderRadius: 14, padding: "10px 14px",
+              borderRadius: 12, padding: "8px 12px",
               background: bot.gradient,
-              marginBottom: 10,
-              display: "flex", alignItems: "center", gap: 10,
+              marginBottom: 8,
+              display: "flex", alignItems: "center", gap: 8,
               position: "relative", overflow: "hidden",
-              boxShadow: "-3px -3px 8px rgba(255,255,255,0.5), 3px 5px 12px rgba(0,0,0,0.2)",
+              boxShadow: "-2px -2px 6px rgba(255,255,255,0.5), 2px 4px 10px rgba(0,0,0,0.2)",
             }}>
-              <img src={bot.img} alt={bot.name} style={{ width: 34, height: 34, objectFit: "contain", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>{bot.name}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{bot.badge} {bot.tier} · {bot.dailyPct}% Daily</div>
+              <img src={bot.img} alt={bot.name} style={{ width: 28, height: 28, objectFit: "contain", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{bot.name}</div>
+                <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.75)" }}>{bot.badge} {bot.tier} · {bot.dailyPct}% Daily</div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#fff" }}>${fmtFull(amount)}</div>
-                <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.6)" }}>Fixed Investment</div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: "#fff" }}>${fmtFull(amount)}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.65)" }}>Investment</div>
               </div>
             </div>
 
             {/* Quick Stats Grid with Inset Wells */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5, marginBottom: 8 }}>
               {[
                 { label: `Daily (${bot.dailyPct}%)`, value: `+$${fmtFull(dailyReturn)}` },
                 { label: "Weekly", value: `+$${fmtFull(dailyReturn * 7)}` },
                 { label: "Monthly", value: `+$${fmtFull(dailyReturn * 30)}` },
               ].map(s => (
                 <div key={s.label} style={{
-                  borderRadius: 10, padding: "7px 6px", textAlign: "center",
+                  borderRadius: 8, padding: "5px 4px", textAlign: "center",
                   background: "var(--bg2)",
                   border: "1px solid rgba(0,166,81,0.2)",
-                  boxShadow: "inset 1px 1px 4px rgba(163,177,198,0.3), inset -1px -1px 4px rgba(255,255,255,0.8)",
+                  boxShadow: "inset 1px 1px 3px rgba(163,177,198,0.25), inset -1px -1px 3px rgba(255,255,255,0.7)",
                 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#00a651" }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>{s.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#00a651" }}>{s.value}</div>
+                  <div style={{ fontSize: 9.5, color: "var(--muted)", marginTop: 1 }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -216,35 +217,35 @@ function ConfirmSheet({ bot, balance, open, closing, onConfirm, onClose, submitt
             {/* Balance check recessed row */}
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              borderRadius: 10, padding: "8px 12px", marginBottom: 10,
+              borderRadius: 8, padding: "6px 10px", marginBottom: 8,
               background: "var(--bg2)",
               border: "1px solid rgba(255,255,255,0.6)",
-              boxShadow: "inset 2px 2px 5px rgba(163,177,198,0.35), inset -2px -2px 5px rgba(255,255,255,0.8)",
+              boxShadow: "inset 1px 1px 3px rgba(163,177,198,0.3), inset -1px -1px 3px rgba(255,255,255,0.8)",
             }}>
               <div>
-                <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>Wallet Balance</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>${fmtFull(balance)}</div>
+                <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 500 }}>Wallet Balance</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>${fmtFull(balance)}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>After Activation</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#00a651" }}>${fmtFull(Math.max(0, balance - amount))}</div>
+                <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 500 }}>After Activation</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#00a651" }}>${fmtFull(Math.max(0, balance - amount))}</div>
               </div>
             </div>
 
             {/* Buttons */}
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={onClose} disabled={submitting} style={{
-                flex: 1, height: 44, borderRadius: 12,
+                flex: 1, height: 38, borderRadius: 10,
                 border: "1px solid rgba(255,255,255,0.7)", background: "var(--bg2)",
-                color: "var(--muted)", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                boxShadow: "-2px -2px 6px rgba(255,255,255,0.9), 2px 2px 6px rgba(163,177,198,0.4)",
+                color: "var(--muted)", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                boxShadow: "-1px -1px 4px rgba(255,255,255,0.9), 1px 1px 4px rgba(163,177,198,0.35)",
               }}>Cancel</button>
               <button onClick={onConfirm} disabled={submitting} style={{
-                flex: 2, height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,0.3)",
+                flex: 2, height: 38, borderRadius: 10, border: "1px solid rgba(255,255,255,0.3)",
                 background: "linear-gradient(135deg,#00a651,#007a3c)",
-                color: "#fff", fontSize: 14, fontWeight: 800,
+                color: "#fff", fontSize: 13, fontWeight: 800,
                 cursor: submitting ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 14px rgba(0,166,81,0.35), -2px -2px 6px rgba(255,255,255,0.5)",
+                boxShadow: "0 3px 10px rgba(0,166,81,0.35)",
               }}>
                 {submitting ? "Activating…" : "Confirm & Activate 🚀"}
               </button>
