@@ -78,11 +78,30 @@ interface PaymentItem {
 
 interface UserProfile {
   uid: string;
+  displayName?: string;
   phone?: string;
   email?: string;
   createdAt?: number;
   affiliateCode?: string;
   role?: string;
+  referredBy?: string;
+  referredByL2?: string;
+  referredByL3?: string;
+  balance?: number;
+}
+
+interface PopupDialog {
+  isOpen: boolean;
+  type: "confirm" | "prompt";
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  confirmColor?: string;
+  cancelLabel?: string;
+  defaultValue?: string;
+  inputValue?: string;
+  inputPlaceholder?: string;
+  onConfirm: (inputVal?: string) => void | Promise<void>;
 }
 
 function fmt(n: number) {
@@ -138,6 +157,21 @@ export default function Admin() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentItem | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Custom Popup Dialog state (replaces native alert/confirm/prompt)
+  const [popupDialog, setPopupDialog] = useState<PopupDialog | null>(null);
+
+  // Edit User Details & Balance state
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editPhone, setEditPhone] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState("user");
+  const [editAffiliateCode, setEditAffiliateCode] = useState("");
+  const [editReferredBy, setEditReferredBy] = useState("");
+  const [editBalance, setEditBalance] = useState("");
+  const [editBalanceReason, setEditBalanceReason] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
+
   // Action states
   const [processingKey, setProcessingKey] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
@@ -146,6 +180,104 @@ export default function Admin() {
     setActionMsg({ text, type });
     setTimeout(() => setActionMsg(null), 3500);
   };
+
+  // Live balance calculation for any user
+  function getUserBalance(uid: string): number {
+    const userPays = payments.filter(
+      (p) => p.uid === uid && ["completed", "success", "paid"].includes(String(p.status || "").toLowerCase())
+    );
+    const totalIn = userPays.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    const userWiths = withdrawals.filter(
+      (w) => w.uid === uid && !["failed", "rejected", "cancelled"].includes(String(w.status || "").toLowerCase())
+    );
+    const totalOut = userWiths.reduce((sum, w) => sum + (Number(w.amount) || 0), 0);
+
+    return Math.max(0, totalIn - totalOut);
+  }
+
+  function handleOpenEditUser(u: UserProfile) {
+    setEditingUser(u);
+    setEditPhone(u.phone || "");
+    setEditDisplayName(u.displayName || u.phone || "");
+    setEditEmail(u.email || "");
+    setEditRole(u.role || "user");
+    setEditAffiliateCode(u.affiliateCode || "");
+    setEditReferredBy(u.referredBy || "");
+    const curBal = getUserBalance(u.uid);
+    setEditBalance(curBal.toFixed(2));
+    setEditBalanceReason("");
+  }
+
+  async function handleSaveUser() {
+    if (!editingUser) return;
+    setSavingUser(true);
+    try {
+      const curBal = getUserBalance(editingUser.uid);
+      const targetBal = Math.max(0, parseFloat(editBalance) || 0);
+      const diff = parseFloat((targetBal - curBal).toFixed(2));
+
+      // Balance adjustment if changed
+      if (Math.abs(diff) >= 0.01) {
+        if (diff > 0) {
+          await push(ref(db, `userPayments/${editingUser.uid}`), {
+            amount: diff,
+            currency: "USD",
+            type: "admin_adjustment",
+            status: "completed",
+            description: editBalanceReason.trim() || `Admin balance adjustment (Credit +$${fmt(diff)})`,
+            createdAt: Date.now(),
+          });
+        } else {
+          await push(ref(db, `withdrawRequests/${editingUser.uid}`), {
+            amount: Math.abs(diff),
+            currency: "USD",
+            type: "admin_deduction",
+            destination: "Admin Adjustment",
+            status: "completed",
+            description: editBalanceReason.trim() || `Admin balance deduction (-$${fmt(Math.abs(diff))})`,
+            createdAt: Date.now(),
+            processedAt: Date.now(),
+          });
+        }
+      }
+
+      // Update user document
+      const cleanPhone = editPhone.trim();
+      const cleanCode = editAffiliateCode.trim().toUpperCase();
+      const updates: Record<string, any> = {
+        phone: cleanPhone,
+        displayName: editDisplayName.trim() || cleanPhone,
+        email: editEmail.trim(),
+        role: editRole,
+        balance: targetBal,
+        updatedAt: Date.now(),
+      };
+      if (cleanCode) updates.affiliateCode = cleanCode;
+      if (editReferredBy.trim()) updates.referredBy = editReferredBy.trim();
+
+      await update(ref(db, `users/${editingUser.uid}`), updates);
+
+      // Keep affiliateCodes index in sync
+      if (cleanCode) {
+        await set(ref(db, `affiliateCodes/${cleanCode}`), editingUser.uid);
+      }
+
+      // Keep admins node in sync
+      if (editRole === "admin") {
+        await set(ref(db, `admins/${editingUser.uid}`), true);
+      } else {
+        await remove(ref(db, `admins/${editingUser.uid}`));
+      }
+
+      showMsg(`User ${cleanPhone || editingUser.uid.slice(0, 8)} updated successfully! Balance set to $${fmt(targetBal)} ✅`);
+      setEditingUser(null);
+    } catch (err: any) {
+      showMsg(err?.message || "Failed to update user details.", "err");
+    } finally {
+      setSavingUser(false);
+    }
+  }
 
   async function handleClaimAdminRole() {
     if (!user) return;
@@ -283,11 +415,16 @@ export default function Admin() {
         const val = snap.val() as Record<string, any>;
         const list: UserProfile[] = Object.entries(val).map(([uid, u]) => ({
           uid,
+          displayName: u.displayName || u.phone,
           phone: u.phone,
           email: u.email,
           createdAt: u.createdAt,
           affiliateCode: u.affiliateCode,
           role: u.role,
+          referredBy: u.referredBy,
+          referredByL2: u.referredByL2,
+          referredByL3: u.referredByL3,
+          balance: u.balance,
         }));
         list.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
         setUsersList(list);
@@ -306,140 +443,175 @@ export default function Admin() {
   }, [isAdmin]);
 
   /* ── Actions: Withdrawals Approval / Rejection ───────── */
-  async function handleApproveWithdrawal(w: WithdrawItem) {
-    if (!confirm(`Approve payout of $${fmt(w.amount)} to ${w.destination} (${w.accountName || "User"})?`)) return;
-    setProcessingKey(w.key);
-    try {
-      await update(ref(db, `withdrawRequests/${w.uid}/${w.key}`), {
-        status: "completed",
-        processedAt: Date.now(),
-        adminNote: "Approved & processed by admin",
-      });
-      showMsg(`Withdrawal of $${fmt(w.amount)} marked as completed! ✅`);
-    } catch (err: any) {
-      showMsg(err?.message || "Failed to approve withdrawal.", "err");
-    } finally {
-      setProcessingKey(null);
-    }
+  function handleApproveWithdrawal(w: WithdrawItem) {
+    setPopupDialog({
+      isOpen: true,
+      type: "confirm",
+      title: "Approve Withdrawal Payout",
+      message: `Approve payout of $${fmt(w.amount)} to ${w.destination} (${w.accountName || "User"})?\n\nThis will mark the withdrawal as completed.`,
+      confirmLabel: "Approve Payout",
+      confirmColor: "#00a651",
+      cancelLabel: "Cancel",
+      onConfirm: async () => {
+        setPopupDialog(null);
+        setProcessingKey(w.key);
+        try {
+          await update(ref(db, `withdrawRequests/${w.uid}/${w.key}`), {
+            status: "completed",
+            processedAt: Date.now(),
+            adminNote: "Approved & processed by admin",
+          });
+          showMsg(`Withdrawal of $${fmt(w.amount)} marked as completed! ✅`);
+        } catch (err: any) {
+          showMsg(err?.message || "Failed to approve withdrawal.", "err");
+        } finally {
+          setProcessingKey(null);
+        }
+      },
+    });
   }
 
-  async function handleRejectWithdrawal(w: WithdrawItem) {
-    const reason = prompt("Enter reason for rejection (optional):", "Verification issue / invalid destination details");
-    if (reason === null) return;
-    setProcessingKey(w.key);
-    try {
-      await update(ref(db, `withdrawRequests/${w.uid}/${w.key}`), {
-        status: "rejected",
-        processedAt: Date.now(),
-        adminNote: reason.trim() || "Rejected by administrator",
-      });
-      showMsg(`Withdrawal for user ${w.uid.slice(0, 6)} rejected.`, "err");
-    } catch (err: any) {
-      showMsg(err?.message || "Failed to reject withdrawal.", "err");
-    } finally {
-      setProcessingKey(null);
-    }
+  function handleRejectWithdrawal(w: WithdrawItem) {
+    setPopupDialog({
+      isOpen: true,
+      type: "prompt",
+      title: "Reject Withdrawal Request",
+      message: `Enter reason for rejecting withdrawal of $${fmt(w.amount)}:`,
+      defaultValue: "Verification issue / invalid destination details",
+      inputValue: "Verification issue / invalid destination details",
+      inputPlaceholder: "Enter rejection reason…",
+      confirmLabel: "Reject Withdrawal",
+      confirmColor: "#ef4444",
+      cancelLabel: "Cancel",
+      onConfirm: async (reason) => {
+        setPopupDialog(null);
+        setProcessingKey(w.key);
+        try {
+          await update(ref(db, `withdrawRequests/${w.uid}/${w.key}`), {
+            status: "rejected",
+            processedAt: Date.now(),
+            adminNote: (reason || "").trim() || "Rejected by administrator",
+          });
+          showMsg(`Withdrawal for user ${w.uid.slice(0, 6)} rejected. ❌`, "err");
+        } catch (err: any) {
+          showMsg(err?.message || "Failed to reject withdrawal.", "err");
+        } finally {
+          setProcessingKey(null);
+        }
+      },
+    });
   }
 
   /* ── Actions: Deposit Approval, Rejection & Deletion ───────── */
-  async function handleApproveDeposit(p: PaymentItem) {
+  function handleApproveDeposit(p: PaymentItem) {
     if (p.status === "completed") {
       showMsg("This deposit is already completed/approved.", "err");
       return;
     }
-    const confirmMsg = `Approve deposit of $${fmt(p.amount)} for User (${p.phone || p.uid.slice(0, 8)})?\n\nThis will credit their wallet balance and automatically distribute multi-level referral commissions:\n• Level 1 (Direct): 12%\n• Level 2: 2%\n• Level 3: 1%`;
-    if (!confirm(confirmMsg)) return;
+    const confirmMsg = `Approve deposit of $${fmt(p.amount)} for User (${p.phone || p.uid.slice(0, 8)})?\n\nThis will credit their wallet balance and automatically distribute recurring multi-level commissions (12% L1 · 2% L2 · 1% L3) on this deposit.`;
+    
+    setPopupDialog({
+      isOpen: true,
+      type: "confirm",
+      title: "Approve Deposit & Pay Commissions",
+      message: confirmMsg,
+      confirmLabel: "Approve & Distribute",
+      confirmColor: "#00a651",
+      cancelLabel: "Cancel",
+      onConfirm: async () => {
+        setPopupDialog(null);
+        setProcessingKey(p.key);
+        try {
+          const depositAmount = Number(p.amount || 0);
 
-    setProcessingKey(p.key);
-    try {
-      const depositAmount = Number(p.amount || 0);
+          // 1. Fetch depositor's user profile to resolve upline referral chain
+          const userSnap = await get(ref(db, `users/${p.uid}`));
+          let level1Uid: string | null = null;
+          let level2Uid: string | null = null;
+          let level3Uid: string | null = null;
+          let depositorPhone = p.phone || "Downline User";
 
-      // 1. Fetch depositor's user profile to resolve upline referral chain
-      const userSnap = await get(ref(db, `users/${p.uid}`));
-      let level1Uid: string | null = null;
-      let level2Uid: string | null = null;
-      let level3Uid: string | null = null;
-      let depositorPhone = p.phone || "Downline User";
+          if (userSnap.exists()) {
+            const uData = userSnap.val();
+            depositorPhone = uData.phone || uData.displayName || depositorPhone;
+            level1Uid = uData.referredBy || null;
+            level2Uid = uData.referredByL2 || null;
+            level3Uid = uData.referredByL3 || null;
 
-      if (userSnap.exists()) {
-        const uData = userSnap.val();
-        depositorPhone = uData.phone || uData.displayName || depositorPhone;
-        level1Uid = uData.referredBy || null;
-        level2Uid = uData.referredByL2 || null;
-        level3Uid = uData.referredByL3 || null;
-
-        // Traverse uplines dynamically if L2/L3 not pre-stored
-        if (level1Uid && !level2Uid) {
-          const l1Snap = await get(ref(db, `users/${level1Uid}`));
-          if (l1Snap.exists()) {
-            level2Uid = l1Snap.val().referredBy || null;
-            if (level2Uid && !level3Uid) {
-              const l2Snap = await get(ref(db, `users/${level2Uid}`));
-              if (l2Snap.exists()) {
-                level3Uid = l2Snap.val().referredBy || null;
+            // Traverse uplines dynamically if L2/L3 not pre-stored
+            if (level1Uid && !level2Uid) {
+              const l1Snap = await get(ref(db, `users/${level1Uid}`));
+              if (l1Snap.exists()) {
+                level2Uid = l1Snap.val().referredBy || null;
+                if (level2Uid && !level3Uid) {
+                  const l2Snap = await get(ref(db, `users/${level2Uid}`));
+                  if (l2Snap.exists()) {
+                    level3Uid = l2Snap.val().referredBy || null;
+                  }
+                }
               }
             }
           }
-        }
-      }
 
-      // 2. Distribute multi-tier commissions: 12% (L1), 2% (L2), 1% (L3)
-      const commissionTiers: { uid: string; level: number; pct: number }[] = [];
-      if (level1Uid && level1Uid !== p.uid) commissionTiers.push({ uid: level1Uid, level: 1, pct: 12 });
-      if (level2Uid && level2Uid !== p.uid && level2Uid !== level1Uid) commissionTiers.push({ uid: level2Uid, level: 2, pct: 2 });
-      if (level3Uid && level3Uid !== p.uid && level3Uid !== level1Uid && level3Uid !== level2Uid) commissionTiers.push({ uid: level3Uid, level: 3, pct: 1 });
+          // 2. Distribute multi-tier commissions: 12% (L1), 2% (L2), 1% (L3)
+          const commissionTiers: { uid: string; level: number; pct: number }[] = [];
+          if (level1Uid && level1Uid !== p.uid) commissionTiers.push({ uid: level1Uid, level: 1, pct: 12 });
+          if (level2Uid && level2Uid !== p.uid && level2Uid !== level1Uid) commissionTiers.push({ uid: level2Uid, level: 2, pct: 2 });
+          if (level3Uid && level3Uid !== p.uid && level3Uid !== level1Uid && level3Uid !== level2Uid) commissionTiers.push({ uid: level3Uid, level: 3, pct: 1 });
 
-      for (const tier of commissionTiers) {
-        const commAmt = parseFloat(((depositAmount * tier.pct) / 100).toFixed(2));
-        if (commAmt > 0) {
-          // A) Credit upline wallet balance in userPayments
-          await push(ref(db, `userPayments/${tier.uid}`), {
-            amount: commAmt,
-            currency: p.currency || "USD",
-            type: "referral_commission",
+          for (const tier of commissionTiers) {
+            const commAmt = parseFloat(((depositAmount * tier.pct) / 100).toFixed(2));
+            if (commAmt > 0) {
+              // A) Credit upline wallet balance in userPayments
+              await push(ref(db, `userPayments/${tier.uid}`), {
+                amount: commAmt,
+                currency: p.currency || "USD",
+                type: "referral_commission",
+                status: "completed",
+                description: `Level ${tier.level} (${tier.pct}%) Commission from ${depositorPhone} (Deposit: $${depositAmount.toFixed(2)})`,
+                fromUid: p.uid,
+                fromPhone: depositorPhone,
+                level: tier.level,
+                percentage: tier.pct,
+                depositKey: p.key,
+                depositAmount: depositAmount,
+                createdAt: Date.now(),
+              });
+
+              // B) Record in referralEarnings for affiliate tracking
+              await push(ref(db, `referralEarnings/${tier.uid}`), {
+                amount: commAmt,
+                currency: p.currency || "USD",
+                level: tier.level,
+                percentage: tier.pct,
+                fromUid: p.uid,
+                fromPhone: depositorPhone,
+                depositKey: p.key,
+                depositAmount: depositAmount,
+                createdAt: Date.now(),
+              });
+            }
+          }
+
+          // 3. Mark the deposit as completed
+          await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
             status: "completed",
-            description: `Level ${tier.level} (${tier.pct}%) Commission from ${depositorPhone}`,
-            fromUid: p.uid,
-            fromPhone: depositorPhone,
-            level: tier.level,
-            percentage: tier.pct,
-            depositKey: p.key,
-            depositAmount: depositAmount,
-            createdAt: Date.now(),
+            approvedAt: Date.now(),
+            commissionProcessed: true,
+            adminNote: "Approved by administrator with multi-tier referral commissions paid.",
           });
 
-          // B) Record in referralEarnings for affiliate tracking
-          await push(ref(db, `referralEarnings/${tier.uid}`), {
-            amount: commAmt,
-            currency: p.currency || "USD",
-            level: tier.level,
-            percentage: tier.pct,
-            fromUid: p.uid,
-            fromPhone: depositorPhone,
-            depositKey: p.key,
-            depositAmount: depositAmount,
-            createdAt: Date.now(),
-          });
+          showMsg(`Deposit of $${fmt(depositAmount)} approved and commissions distributed! ✅`);
+          if (selectedPayment?.key === p.key) {
+            setSelectedPayment(null);
+          }
+        } catch (err: any) {
+          showMsg(err?.message || "Failed to approve deposit.", "err");
+        } finally {
+          setProcessingKey(null);
         }
-      }
-
-      // 3. Mark the deposit as completed
-      await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
-        status: "completed",
-        approvedAt: Date.now(),
-        commissionProcessed: true,
-        adminNote: "Approved by administrator with multi-tier referral commissions paid.",
-      });
-
-      showMsg(`Deposit of $${fmt(depositAmount)} approved and commissions distributed! ✅`);
-      if (selectedPayment?.key === p.key) {
-        setSelectedPayment(null);
-      }
-    } catch (err: any) {
-      showMsg(err?.message || "Failed to approve deposit.", "err");
-    } finally {
-      setProcessingKey(null);
-    }
+      },
+    });
   }
 
   /* ── Helper: Revoke/Clawback Commissions for a Deposit ──────── */
@@ -484,54 +656,76 @@ export default function Admin() {
     }
   }
 
-  async function handleRejectDeposit(p: PaymentItem) {
-    const reason = prompt("Enter reason for rejection (optional):", "Invalid payment proof or funds not received");
-    if (reason === null) return;
-    setProcessingKey(p.key);
-    try {
-      // If commissions were previously processed for this deposit, revoke them immediately
-      if (p.commissionProcessed || p.status === "completed") {
-        await revokeCommissionsForDeposit(p);
-      }
+  function handleRejectDeposit(p: PaymentItem) {
+    setPopupDialog({
+      isOpen: true,
+      type: "prompt",
+      title: "Reject Deposit",
+      message: `Enter reason for rejecting deposit of $${fmt(p.amount)}:`,
+      defaultValue: "Invalid payment proof or funds not received",
+      inputValue: "Invalid payment proof or funds not received",
+      inputPlaceholder: "Enter rejection reason…",
+      confirmLabel: "Reject Deposit",
+      confirmColor: "#ef4444",
+      cancelLabel: "Cancel",
+      onConfirm: async (reason) => {
+        setPopupDialog(null);
+        setProcessingKey(p.key);
+        try {
+          // If commissions were previously processed for this deposit, revoke them immediately
+          if (p.commissionProcessed || p.status === "completed") {
+            await revokeCommissionsForDeposit(p);
+          }
 
-      await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
-        status: "rejected",
-        rejectedAt: Date.now(),
-        commissionProcessed: false,
-        adminNote: reason.trim() || "Rejected by administrator",
-      });
-      showMsg(`Deposit of $${fmt(p.amount)} rejected and commissions cancelled (if any). ❌`, "err");
-      if (selectedPayment?.key === p.key) {
-        setSelectedPayment(null);
-      }
-    } catch (err: any) {
-      showMsg(err?.message || "Failed to reject deposit.", "err");
-    } finally {
-      setProcessingKey(null);
-    }
+          await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
+            status: "rejected",
+            rejectedAt: Date.now(),
+            commissionProcessed: false,
+            adminNote: (reason || "").trim() || "Rejected by administrator",
+          });
+          showMsg(`Deposit of $${fmt(p.amount)} rejected and commissions cancelled (if any). ❌`, "err");
+          if (selectedPayment?.key === p.key) {
+            setSelectedPayment(null);
+          }
+        } catch (err: any) {
+          showMsg(err?.message || "Failed to reject deposit.", "err");
+        } finally {
+          setProcessingKey(null);
+        }
+      },
+    });
   }
 
-  async function handleDeleteDeposit(p: PaymentItem) {
-    if (!confirm(`Are you sure you want to PERMANENTLY DELETE deposit record $${fmt(p.amount)} (${p.key})? This action cannot be undone.`)) {
-      return;
-    }
-    setProcessingKey(p.key);
-    try {
-      // If commissions were previously processed for this deposit, revoke them as well
-      if (p.commissionProcessed || p.status === "completed") {
-        await revokeCommissionsForDeposit(p);
-      }
+  function handleDeleteDeposit(p: PaymentItem) {
+    setPopupDialog({
+      isOpen: true,
+      type: "confirm",
+      title: "Delete Deposit Record",
+      message: `Are you sure you want to PERMANENTLY DELETE deposit record $${fmt(p.amount)} (${p.key})?\n\nThis action cannot be undone.`,
+      confirmLabel: "Delete Permanently",
+      confirmColor: "#ef4444",
+      cancelLabel: "Cancel",
+      onConfirm: async () => {
+        setPopupDialog(null);
+        setProcessingKey(p.key);
+        try {
+          // If commissions were previously processed for this deposit, revoke them as well
+          if (p.commissionProcessed || p.status === "completed") {
+            await revokeCommissionsForDeposit(p);
+          }
 
-      await remove(ref(db, `userPayments/${p.uid}/${p.key}`));
-      showMsg("Deposit record permanently deleted and commissions cleaned up. 🗑️");
-      if (selectedPayment?.key === p.key) {
-        setSelectedPayment(null);
-      }
-    } catch (err: any) {
-      showMsg(err?.message || "Failed to delete deposit.", "err");
-    } finally {
-      setProcessingKey(null);
-    }
+          await remove(ref(db, `userPayments/${p.uid}/${p.key}`));
+          showMsg("Deposit record permanently deleted and commissions cleaned up. 🗑️");
+          if (selectedPayment?.key === p.key) {
+            setSelectedPayment(null);
+          }
+        } catch (err: any) {
+          showMsg(err?.message || "Failed to delete deposit.", "err");
+        } finally {
+          setProcessingKey(null);
+        }
+      },
+    });
   }
 
   /* ── Calculations & Metrics ────────────────────────── */
@@ -2057,7 +2251,7 @@ export default function Admin() {
                     <div>
                       <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Registered Users Directory</h2>
                       <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
-                        Total Members: {usersList.length}
+                        Total Members: {usersList.length} • Click "Edit" on any user to modify details or set wallet balance.
                       </div>
                     </div>
                     <input
@@ -2069,70 +2263,258 @@ export default function Admin() {
                     />
                   </div>
 
-                  <div className="neu-card" style={{ borderRadius: 18, overflow: "hidden" }}>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-                        <thead>
-                          <tr style={{ background: "var(--bg2)", borderBottom: "1px solid var(--stroke)" }}>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>User / Contact</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>UID</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Joined</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Referral Code</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Active Bots</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Role</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredUsers.map((u) => {
-                            const userBotCount = userBots.filter((b) => b.uid === u.uid).length;
-                            return (
-                              <tr key={u.uid} style={{ borderBottom: "1px solid var(--stroke)" }}>
-                                <td style={{ padding: "12px 14px", fontWeight: 700 }}>
-                                  {u.phone || u.email || "Registered User"}
-                                </td>
-                                <td style={{ padding: "12px 14px", fontFamily: "monospace", fontSize: 12 }}>
-                                  {u.uid}
-                                </td>
-                                <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12 }}>
-                                  {fmtDate(u.createdAt)}
-                                </td>
-                                <td style={{ padding: "12px 14px", fontFamily: "monospace" }}>
-                                  {u.affiliateCode || "—"}
-                                </td>
-                                <td style={{ padding: "12px 14px", fontWeight: 800 }}>
-                                  {userBotCount > 0 ? (
-                                    <span style={{ color: "#00a651" }}>{userBotCount} Bots Running</span>
-                                  ) : (
-                                    <span style={{ color: "var(--muted)" }}>0</span>
-                                  )}
-                                </td>
-                                <td style={{ padding: "12px 14px" }}>
-                                  <span
-                                    style={{
-                                      padding: "3px 8px",
-                                      borderRadius: 6,
-                                      fontSize: 11,
-                                      fontWeight: 800,
-                                      background: u.role === "admin" ? "rgba(245,158,11,0.12)" : "rgba(148,163,184,0.12)",
-                                      color: u.role === "admin" ? "#d97706" : "var(--muted)",
-                                    }}
-                                  >
-                                    {(u.role || "user").toUpperCase()}
-                                  </span>
+                  {/* Desktop Table View */}
+                  <div className="admin-desktop-table">
+                    <div className="neu-card" style={{ borderRadius: 18, overflow: "hidden" }}>
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ background: "var(--bg2)", borderBottom: "1px solid var(--stroke)" }}>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>User / Contact</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>Live Balance</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>UID</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>Joined</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>Referral Code</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>Active Bots</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800 }}>Role</th>
+                              <th style={{ padding: "12px 14px", fontWeight: 800, textAlign: "right" }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredUsers.map((u) => {
+                              const userBotCount = userBots.filter((b) => b.uid === u.uid).length;
+                              const userBal = getUserBalance(u.uid);
+                              return (
+                                <tr key={u.uid} style={{ borderBottom: "1px solid var(--stroke)" }}>
+                                  <td style={{ padding: "12px 14px", fontWeight: 700 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                      <div
+                                        style={{
+                                          width: 28,
+                                          height: 28,
+                                          borderRadius: "50%",
+                                          background: "var(--bg2)",
+                                          border: "1px solid var(--stroke)",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          fontSize: 12,
+                                          fontWeight: 800,
+                                        }}
+                                      >
+                                        {(u.displayName || u.phone || "U").charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div>{u.displayName || u.phone || "Registered User"}</div>
+                                        {u.email && <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>{u.email}</div>}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: "12px 14px" }}>
+                                    <span
+                                      style={{
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        fontSize: 12,
+                                        fontWeight: 900,
+                                        background: userBal > 0 ? "rgba(0,166,81,0.12)" : "rgba(148,163,184,0.12)",
+                                        color: userBal > 0 ? "#00a651" : "var(--muted)",
+                                      }}
+                                    >
+                                      ${fmt(userBal)}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: "12px 14px", fontFamily: "monospace", fontSize: 11.5, color: "var(--muted)" }}>
+                                    {u.uid.slice(0, 10)}…
+                                  </td>
+                                  <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12 }}>
+                                    {fmtDate(u.createdAt)}
+                                  </td>
+                                  <td style={{ padding: "12px 14px", fontFamily: "monospace", fontWeight: 700 }}>
+                                    {u.affiliateCode || "—"}
+                                  </td>
+                                  <td style={{ padding: "12px 14px", fontWeight: 800 }}>
+                                    {userBotCount > 0 ? (
+                                      <span style={{ color: "#00a651" }}>{userBotCount} Bots</span>
+                                    ) : (
+                                      <span style={{ color: "var(--muted)" }}>0</span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: "12px 14px" }}>
+                                    <span
+                                      style={{
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        fontSize: 11,
+                                        fontWeight: 800,
+                                        background: u.role === "admin" ? "rgba(245,158,11,0.12)" : "rgba(148,163,184,0.12)",
+                                        color: u.role === "admin" ? "#d97706" : "var(--muted)",
+                                      }}
+                                    >
+                                      {(u.role || "user").toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditUser(u)}
+                                      style={{
+                                        padding: "6px 12px",
+                                        borderRadius: 8,
+                                        border: "1px solid var(--accent)",
+                                        background: "rgba(0,166,81,0.08)",
+                                        color: "var(--accent)",
+                                        fontSize: 11.5,
+                                        fontWeight: 800,
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                      }}
+                                    >
+                                      ✏️ Edit Details
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {filteredUsers.length === 0 && (
+                              <tr>
+                                <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>
+                                  No users match the search criteria.
                                 </td>
                               </tr>
-                            );
-                          })}
-                          {filteredUsers.length === 0 && (
-                            <tr>
-                              <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>
-                                No users match the search criteria.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Mobile Cards View */}
+                  <div className="admin-mobile-cards" style={{ flexDirection: "column", gap: 10 }}>
+                    {filteredUsers.map((u) => {
+                      const userBotCount = userBots.filter((b) => b.uid === u.uid).length;
+                      const userBal = getUserBalance(u.uid);
+                      return (
+                        <div
+                          key={u.uid}
+                          className="neu-card"
+                          style={{
+                            borderRadius: 16,
+                            padding: "14px 14px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                              <div
+                                style={{
+                                  width: 34,
+                                  height: 34,
+                                  borderRadius: "50%",
+                                  background: "var(--bg2)",
+                                  border: "1px solid var(--stroke)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 13,
+                                  fontWeight: 900,
+                                }}
+                              >
+                                {(u.displayName || u.phone || "U").charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text)" }}>
+                                  {u.displayName || u.phone || "User"}
+                                </div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "monospace" }}>
+                                  UID: {u.uid.slice(0, 8)}…
+                                </div>
+                              </div>
+                            </div>
+                            <span
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                background: u.role === "admin" ? "rgba(245,158,11,0.12)" : "rgba(148,163,184,0.12)",
+                                color: u.role === "admin" ? "#d97706" : "var(--muted)",
+                              }}
+                            >
+                              {(u.role || "user").toUpperCase()}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              gap: 6,
+                              padding: "10px 12px",
+                              borderRadius: 12,
+                              background: "var(--bg2)",
+                              border: "1px solid var(--stroke)",
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Live Balance</div>
+                              <div style={{ fontSize: 16, fontWeight: 900, color: userBal > 0 ? "#00a651" : "var(--text)", marginTop: 2 }}>
+                                ${fmt(userBal)}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Active Bots</div>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: userBotCount > 0 ? "#00a651" : "var(--muted)", marginTop: 4 }}>
+                                {userBotCount > 0 ? `${userBotCount} Running` : "None"}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Referral Code</div>
+                              <div style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", marginTop: 2 }}>
+                                {u.affiliateCode || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Joined</div>
+                              <div style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, marginTop: 2 }}>
+                                {fmtDate(u.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditUser(u)}
+                            style={{
+                              width: "100%",
+                              padding: "9px 0",
+                              borderRadius: 10,
+                              border: "1.5px solid var(--accent)",
+                              background: "rgba(0,166,81,0.08)",
+                              color: "var(--accent)",
+                              fontWeight: 800,
+                              fontSize: 12.5,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 6,
+                            }}
+                          >
+                            ✏️ Edit Details & Set Balance
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {filteredUsers.length === 0 && (
+                      <div className="neu-card" style={{ padding: 24, textAlign: "center", color: "var(--muted)", borderRadius: 14 }}>
+                        No users match the search criteria.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2525,6 +2907,434 @@ export default function Admin() {
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom Popup Dialog Card (Replaces native browser alert/confirm/prompt) ── */}
+      {popupDialog && popupDialog.isOpen && (
+        <div
+          onClick={() => setPopupDialog(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 15000,
+            background: "rgba(0,0,0,0.72)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="neu-card"
+            style={{
+              width: "100%",
+              maxWidth: 450,
+              borderRadius: 20,
+              padding: "24px 20px",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+              border: "1px solid var(--stroke)",
+              position: "relative",
+              background: "var(--bg1)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: popupDialog.confirmColor === "#ef4444" ? "rgba(239,68,68,0.12)" : "rgba(0,166,81,0.12)",
+                  color: popupDialog.confirmColor || "#00a651",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {popupDialog.confirmColor === "#ef4444" ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                )}
+              </div>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: "var(--text)" }}>{popupDialog.title}</h3>
+            </div>
+
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px", lineHeight: 1.5, whiteSpace: "pre-line" }}>
+              {popupDialog.message}
+            </p>
+
+            {popupDialog.type === "prompt" && (
+              <div style={{ marginBottom: 18 }}>
+                <input
+                  className="input"
+                  autoFocus
+                  value={popupDialog.inputValue ?? ""}
+                  onChange={(e) => setPopupDialog({ ...popupDialog, inputValue: e.target.value })}
+                  placeholder={popupDialog.inputPlaceholder || "Enter details…"}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      popupDialog.onConfirm(popupDialog.inputValue);
+                    } else if (e.key === "Escape") {
+                      setPopupDialog(null);
+                    }
+                  }}
+                  style={{ width: "100%", padding: "10px 14px", fontSize: 13 }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setPopupDialog(null)}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: 12,
+                  border: "1px solid var(--stroke)",
+                  background: "var(--bg2)",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                {popupDialog.cancelLabel || "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={() => popupDialog.onConfirm(popupDialog.inputValue)}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: popupDialog.confirmColor || "#00a651",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  boxShadow: `0 4px 14px ${popupDialog.confirmColor === "#ef4444" ? "rgba(239,68,68,0.3)" : "rgba(0,166,81,0.3)"}`,
+                }}
+              >
+                {popupDialog.confirmLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit User Details & Balance Modal Card ── */}
+      {editingUser && (
+        <div
+          onClick={() => setEditingUser(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 14000,
+            background: "rgba(0,0,0,0.72)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="neu-card"
+            style={{
+              width: "100%",
+              maxWidth: 500,
+              maxHeight: "90vh",
+              overflowY: "auto",
+              borderRadius: 22,
+              padding: "24px 20px",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.5)",
+              border: "1px solid var(--stroke)",
+              position: "relative",
+              background: "var(--bg1)",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #00a651, #007a3c)",
+                    color: "#fff",
+                    fontWeight: 900,
+                    fontSize: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {(editingUser.displayName || editingUser.phone || "U").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: "var(--text)" }}>
+                    Edit User Profile & Balance
+                  </h3>
+                  <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "monospace" }}>
+                    UID: {editingUser.uid}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  border: "1px solid var(--stroke)",
+                  background: "var(--bg2)",
+                  color: "var(--muted)",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Current Balance & Adjustment Banner */}
+            <div
+              style={{
+                borderRadius: 16,
+                padding: "16px",
+                background: "linear-gradient(135deg, rgba(0,166,81,0.08), rgba(0,166,81,0.02))",
+                border: "1.5px solid rgba(0,166,81,0.25)",
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#00a651", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Current Live Balance
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "var(--text)", marginTop: 2 }}>
+                    ${fmt(getUserBalance(editingUser.uid))}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700 }}>Joined AUTEX</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text)", fontWeight: 700, marginTop: 2 }}>
+                    {fmtDate(editingUser.createdAt)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Edit Balance Input */}
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", display: "block", marginBottom: 6 }}>
+                  Set New Target Balance ($ USD)
+                </label>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 800, color: "var(--muted)" }}>$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input"
+                    value={editBalance}
+                    onChange={(e) => setEditBalance(e.target.value)}
+                    placeholder="0.00"
+                    style={{ width: "100%", padding: "10px 14px 10px 28px", fontSize: 16, fontWeight: 800 }}
+                  />
+                </div>
+
+                {/* Quick Add / Deduct Chips */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {[
+                    { label: "+$10", val: 10 },
+                    { label: "+$50", val: 50 },
+                    { label: "+$100", val: 100 },
+                    { label: "+$500", val: 500 },
+                    { label: "-$10", val: -10 },
+                    { label: "Reset to 0", val: -999999 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => {
+                        const cur = Math.max(0, parseFloat(editBalance) || 0);
+                        if (chip.val === -999999) {
+                          setEditBalance("0.00");
+                        } else {
+                          setEditBalance(Math.max(0, cur + chip.val).toFixed(2));
+                        }
+                      }}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 8,
+                        border: "1px solid var(--stroke)",
+                        background: "var(--bg1)",
+                        color: chip.val < 0 ? "#ef4444" : "var(--accent)",
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Optional Reason */}
+                <div style={{ marginTop: 10 }}>
+                  <input
+                    className="input"
+                    value={editBalanceReason}
+                    onChange={(e) => setEditBalanceReason(e.target.value)}
+                    placeholder="Adjustment reason (optional, e.g. Manual credit / bonus)"
+                    style={{ width: "100%", padding: "8px 12px", fontSize: 11.5 }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Fields */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--muted)", display: "block", marginBottom: 5 }}>
+                  Phone Number
+                </label>
+                <input
+                  className="input"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="+263..."
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--muted)", display: "block", marginBottom: 5 }}>
+                  Display Name
+                </label>
+                <input
+                  className="input"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="Trader Name"
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--muted)", display: "block", marginBottom: 5 }}>
+                  Email Address
+                </label>
+                <input
+                  className="input"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--muted)", display: "block", marginBottom: 5 }}>
+                    Role
+                  </label>
+                  <select
+                    className="input"
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    style={{ width: "100%", padding: "9px 12px", fontSize: 13, background: "var(--bg2)" }}
+                  >
+                    <option value="user">User (Standard)</option>
+                    <option value="admin">Administrator 👑</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--muted)", display: "block", marginBottom: 5 }}>
+                    Affiliate Code
+                  </label>
+                  <input
+                    className="input"
+                    value={editAffiliateCode}
+                    onChange={(e) => setEditAffiliateCode(e.target.value.toUpperCase())}
+                    placeholder="CODE123"
+                    style={{ width: "100%", padding: "9px 12px", fontSize: 13, fontFamily: "monospace" }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 800, color: "var(--muted)", display: "block", marginBottom: 5 }}>
+                  Referred By (Upline UID or Code)
+                </label>
+                <input
+                  className="input"
+                  value={editReferredBy}
+                  onChange={(e) => setEditReferredBy(e.target.value)}
+                  placeholder="Optional Upline UID"
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 13, fontFamily: "monospace" }}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                style={{
+                  flex: 1,
+                  padding: "11px 16px",
+                  borderRadius: 12,
+                  border: "1px solid var(--stroke)",
+                  background: "var(--bg2)",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveUser}
+                disabled={savingUser}
+                style={{
+                  flex: 1.6,
+                  padding: "11px 16px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: "linear-gradient(135deg, #00a651, #007a3c)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: savingUser ? "not-allowed" : "pointer",
+                  boxShadow: "0 4px 14px rgba(0,166,81,0.3)",
+                }}
+              >
+                {savingUser ? "Saving Changes…" : "Save Changes & Balance"}
               </button>
             </div>
           </div>
