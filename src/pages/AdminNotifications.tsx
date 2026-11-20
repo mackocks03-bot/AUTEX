@@ -11,6 +11,7 @@ export function AdminNotifications() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     const r = ref(db, "notifications");
@@ -69,13 +70,15 @@ export function AdminNotifications() {
     }
   }
 
-  async function deleteNotification(id: string) {
-    if (!confirm("Delete this notification?")) return;
+  async function confirmDeleteNotification() {
+    if (!deleteTargetId) return;
+    const id = deleteTargetId;
+    setDeleteTargetId(null);
     setErr(null);
     setMsg(null);
     try {
       await remove(ref(db, `notifications/${id}`));
-      setMsg("Deleted.");
+      setMsg("Notification deleted successfully.");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Could not delete.");
     }
@@ -136,7 +139,7 @@ export function AdminNotifications() {
                     {new Date(n.createdAt).toLocaleDateString()}
                   </td>
                   <td style={{ width: 80 }}>
-                    <button className="neu-btn btn-ghost" style={{ color: "var(--danger)" }} type="button" onClick={() => void deleteNotification(n.id!)}>
+                    <button className="neu-btn btn-ghost" style={{ color: "var(--danger)" }} type="button" onClick={() => setDeleteTargetId(n.id!)}>
                       Delete
                     </button>
                   </td>
@@ -153,6 +156,68 @@ export function AdminNotifications() {
           </table>
         </div>
       </div>
+
+      {deleteTargetId && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+            padding: 16,
+          }}
+          onClick={() => setDeleteTargetId(null)}
+        >
+          <div
+            className="neu-card"
+            style={{
+              maxWidth: 420,
+              width: "100%",
+              borderRadius: 18,
+              padding: 24,
+              border: "1px solid var(--stroke)",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12, textAlign: "center" }}>🗑️</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 700, textAlign: "center" }}>
+              Delete Notification?
+            </h3>
+            <p style={{ margin: "0 0 20px", fontSize: 13.5, color: "var(--muted)", textAlign: "center", lineHeight: 1.5 }}>
+              Are you sure you want to delete this broadcast notification? This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="neu-btn btn-ghost"
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => setDeleteTargetId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="neu-btn"
+                style={{
+                  flex: 1,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "var(--danger)",
+                  color: "#fff",
+                  fontWeight: 600,
+                  border: "none",
+                }}
+                onClick={() => void confirmDeleteNotification()}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

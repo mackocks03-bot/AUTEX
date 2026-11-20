@@ -220,7 +220,7 @@ export default function Admin() {
       // Balance adjustment if changed
       if (Math.abs(diff) >= 0.01) {
         if (diff > 0) {
-          await push(ref(db, `userPayments/${editingUser.uid}`), {
+          const adjRef = await push(ref(db, `userPayments/${editingUser.uid}`), {
             amount: diff,
             currency: "USD",
             type: "admin_adjustment",
@@ -228,8 +228,21 @@ export default function Admin() {
             description: editBalanceReason.trim() || `Admin balance adjustment (Credit +$${fmt(diff)})`,
             createdAt: Date.now(),
           });
+          await sendUserNotification(
+            editingUser.uid,
+            "💵 Balance Credited",
+            `Your wallet balance has been credited with +$${fmt(diff)} by administrator. ${editBalanceReason.trim() ? `Note: ${editBalanceReason.trim()}` : ""}`,
+            "balance_adjustment",
+            {
+              amount: diff,
+              newBalance: targetBal,
+              reason: editBalanceReason.trim() || "Admin balance credit",
+              reference: adjRef.key,
+              processedAt: Date.now(),
+            }
+          );
         } else {
-          await push(ref(db, `withdrawRequests/${editingUser.uid}`), {
+          const dedRef = await push(ref(db, `withdrawRequests/${editingUser.uid}`), {
             amount: Math.abs(diff),
             currency: "USD",
             type: "admin_deduction",
@@ -239,6 +252,19 @@ export default function Admin() {
             createdAt: Date.now(),
             processedAt: Date.now(),
           });
+          await sendUserNotification(
+            editingUser.uid,
+            "📉 Balance Adjusted",
+            `Your wallet balance has been adjusted with -$${fmt(Math.abs(diff))} by administrator. ${editBalanceReason.trim() ? `Note: ${editBalanceReason.trim()}` : ""}`,
+            "balance_adjustment",
+            {
+              amount: Math.abs(diff),
+              newBalance: targetBal,
+              reason: editBalanceReason.trim() || "Admin balance deduction",
+              reference: dedRef.key,
+              processedAt: Date.now(),
+            }
+          );
         }
       }
 

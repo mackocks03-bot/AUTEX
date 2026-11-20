@@ -20,6 +20,7 @@ export function AdminMovies() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "group" | "movie"; id: string; name: string } | null>(null);
 
   useEffect(() => {
     const gr = ref(db, "movieGroups");
@@ -69,7 +70,6 @@ export function AdminMovies() {
     try {
       let videoData = "";
       if (mFile) {
-        // Limit warning: RTDB has a 10MB limit per node.
         if (mFile.size > 10 * 1024 * 1024) {
           throw new Error("File too large. Realtime Database only supports files up to 10MB. For larger movies, please use YouTube or Storage.");
         }
@@ -86,7 +86,7 @@ export function AdminMovies() {
       await set(ref(db, `movies/${key}`), {
         title: mTitle,
         youtubeId: mYoutube || null,
-        videoUrl: videoData || null, // Storing Base64 directly in RTDB
+        videoUrl: videoData || null,
         groupId: mGroup,
         createdAt: Date.now()
       });
@@ -96,14 +96,21 @@ export function AdminMovies() {
     finally { setBusy(false); }
   }
 
-  async function deleteGroup(id: string) {
-    if (!confirm("Delete group? Movies will remain but be orphaned.")) return;
-    await remove(ref(db, `movieGroups/${id}`));
-  }
-
-  async function deleteMovie(id: string) {
-    if (!confirm("Delete movie?")) return;
-    await remove(ref(db, `movies/${id}`));
+  async function executeDelete() {
+    if (!confirmDelete) return;
+    const { type, id } = confirmDelete;
+    setConfirmDelete(null);
+    try {
+      if (type === "group") {
+        await remove(ref(db, `movieGroups/${id}`));
+        setMsg("Group deleted successfully.");
+      } else {
+        await remove(ref(db, `movies/${id}`));
+        setMsg("Movie deleted successfully.");
+      }
+    } catch (e: any) {
+      setErr(e.message || "Failed to delete.");
+    }
   }
 
   const groupList = Object.entries(groups || {}).map(([id, v]) => ({ id, ...v }));
@@ -193,14 +200,14 @@ export function AdminMovies() {
                         </div>
                      </td>
                      <td>{g.amount} TZS</td>
-                     <td><button className="neu-btn btn-danger btn-sm" onClick={() => deleteGroup(g.id)}>Delete</button></td>
+                     <td><button className="neu-btn btn-danger btn-sm" onClick={() => setConfirmDelete({ type: "group", id: g.id, name: g.name })}>Delete</button></td>
                    </tr>
                  ))}
                  {movieList.map(m => (
                    <tr key={m.id}>
                      <td style={{ paddingLeft: 32 }}>🎬 {m.title}</td>
                      <td style={{ fontSize: 11 }}>{m.youtubeId ? "YouTube" : "Uploaded File"}</td>
-                     <td><button className="neu-btn btn-danger btn-sm" onClick={() => deleteMovie(m.id)}>Delete</button></td>
+                     <td><button className="neu-btn btn-danger btn-sm" onClick={() => setConfirmDelete({ type: "movie", id: m.id, name: m.title })}>Delete</button></td>
                    </tr>
                  ))}
                </tbody>
@@ -208,6 +215,69 @@ export function AdminMovies() {
            </div>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+            padding: 16,
+          }}
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="neu-card"
+            style={{
+              maxWidth: 420,
+              width: "100%",
+              borderRadius: 18,
+              padding: 24,
+              border: "1px solid var(--stroke)",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12, textAlign: "center" }}>🗑️</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 700, textAlign: "center" }}>
+              Delete {confirmDelete.type === "group" ? "Group" : "Movie"}?
+            </h3>
+            <p style={{ margin: "0 0 20px", fontSize: 13.5, color: "var(--muted)", textAlign: "center", lineHeight: 1.5 }}>
+              Are you sure you want to delete <strong>"{confirmDelete.name}"</strong>?
+              {confirmDelete.type === "group" && " Movies in this group will remain but become unorganized."}
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="neu-btn btn-ghost"
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => setConfirmDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="neu-btn"
+                style={{
+                  flex: 1,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "var(--danger)",
+                  color: "#fff",
+                  fontWeight: 600,
+                  border: "none",
+                }}
+                onClick={() => void executeDelete()}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -54,6 +54,14 @@ function NotifMeta({ type, meta }: { type?: string; meta?: Record<string, string
     if (meta.earnedAt) rows.push({ label: "Earned At", value: new Date(Number(meta.earnedAt)).toLocaleString() });
   }
 
+  if (type === "balance_adjustment") {
+    if (meta.amount != null) rows.push({ label: "Amount Adjusted", value: `$${fmt(meta.amount as number)}`, highlight: true });
+    if (meta.newBalance != null) rows.push({ label: "New Wallet Balance", value: `$${fmt(meta.newBalance as number)}` });
+    if (meta.reason) rows.push({ label: "Reason / Note", value: String(meta.reason) });
+    if (meta.reference) rows.push({ label: "Reference ID", value: String(meta.reference).slice(0, 20) });
+    if (meta.processedAt) rows.push({ label: "Processed At", value: new Date(Number(meta.processedAt)).toLocaleString() });
+  }
+
   if (!rows.length) return null;
 
   return (
@@ -199,6 +207,7 @@ export default function Notifications() {
             n.type === "commission" ? "💰" :
             n.type === "withdrawal_approved" ? "💸" :
             n.type === "withdrawal_rejected" ? "🚫" :
+            n.type === "balance_adjustment" ? "💵" :
             n.type === "broadcast" ? "📢" : "🔔";
 
           const iconBg =
@@ -207,6 +216,7 @@ export default function Notifications() {
             n.type === "commission" ? "rgba(234,179,8,0.15)" :
             n.type === "withdrawal_approved" ? "rgba(56,189,248,0.15)" :
             n.type === "withdrawal_rejected" ? "rgba(239,68,68,0.15)" :
+            n.type === "balance_adjustment" ? "rgba(16,185,129,0.15)" :
             "rgba(99,102,241,0.15)";
 
           return (

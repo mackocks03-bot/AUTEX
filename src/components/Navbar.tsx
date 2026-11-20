@@ -24,11 +24,13 @@ export function Navbar() {
       return;
     }
     
-    let notifications: AppNotification[] = [];
+    let globalNotifs: AppNotification[] = [];
+    let personalNotifs: AppNotification[] = [];
     let reads: Record<string, boolean> = {};
 
     const updateCount = () => {
-      const count = notifications.filter(n => n.id && !reads[n.id]).length;
+      const all = [...personalNotifs, ...globalNotifs];
+      const count = all.filter(n => n.id && !reads[n.id]).length;
       setUnreadCount(count);
     };
 
@@ -36,9 +38,20 @@ export function Navbar() {
     const unsubNotifs = onValue(notifRef, (snap) => {
       const data = snap.val() as Record<string, AppNotification> | null;
       if (data) {
-        notifications = Object.entries(data).map(([id, val]) => ({ ...val, id }));
+        globalNotifs = Object.entries(data).map(([id, val]) => ({ ...val, id: `global_${id}` }));
       } else {
-        notifications = [];
+        globalNotifs = [];
+      }
+      updateCount();
+    });
+
+    const userNotifRef = ref(db, `userNotifications/${user.uid}`);
+    const unsubUserNotifs = onValue(userNotifRef, (snap) => {
+      const data = snap.val() as Record<string, AppNotification> | null;
+      if (data) {
+        personalNotifs = Object.entries(data).map(([id, val]) => ({ ...val, id: `personal_${id}` }));
+      } else {
+        personalNotifs = [];
       }
       updateCount();
     });
@@ -51,6 +64,7 @@ export function Navbar() {
 
     return () => {
       unsubNotifs();
+      unsubUserNotifs();
       unsubReads();
     };
   }, [user]);
