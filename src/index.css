@@ -223,7 +223,7 @@ textarea {
   gap: 4px;
   align-items: center;
   justify-content: flex-end;
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
 }
 
