@@ -352,11 +352,19 @@ function ProofUploadSheet({ open, onClose, net, amount, phone, tabKey, onDone }:
       await uploadBytes(sRef, proofFile);
       const proofUrl = await getDownloadURL(sRef);
       await push(dbRef(db, `userPayments/${user.uid}`), {
-        network: net.id, networkName: net.name,
-        amount: parseFloat(amount), currency: net.currency,
+        network: net.id,
+        networkName: net.name,
+        amount: parseFloat(amount),
+        currency: net.currency,
         phone: tabKey === "mobile" ? phone : null,
-        senderName: senderName.trim(), proofUrl,
-        status: "pending", type: tabKey, createdAt: Date.now(),
+        senderName: senderName.trim(),
+        accountNo: net.accountNo,
+        accountName: net.accountName,
+        proofUrl,
+        status: "pending",
+        type: "deposit",
+        depositType: tabKey,
+        createdAt: Date.now(),
       });
       onDone();
     } catch (err: unknown) {

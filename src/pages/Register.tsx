@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { ref, set } from "firebase/database";
+import { ref, set, get } from "firebase/database";
 import { auth, db } from "@/firebase";
 import { triggerErrorFeedback } from "@/utils/haptics";
 import { COUNTRIES, DEFAULT_COUNTRY, getFlagUrl, type Country } from "@/lib/countries";
@@ -183,19 +183,101 @@ export default function Register() {
       await updateProfile(user, { displayName: formattedPhone });
 
       const affiliateCode = genAffiliateCode();
+      await set(ref(db, `affiliateCodes/${affiliateCode}`), user.uid);
+
+      /* Multi-level referral lookup (12% Level 1, 2% Level 2, 1% Level 3) */
+      const refCode = (params.get("ref") || "").trim().toUpperCase();
+      let level1Uid: string | null = null;
+      let level2Uid: string | null = null;
+      let level3Uid: string | null = null;
+
+      if (refCode) {
+        try {
+          // 1. Direct index lookup
+          const codeSnap = await get(ref(db, `affiliateCodes/${refCode}`));
+          if (codeSnap.exists()) {
+            level1Uid = String(codeSnap.val());
+          } else {
+            // Fallback scan across users
+            const usersSnap = await get(ref(db, "users"));
+            if (usersSnap.exists()) {
+              const allUsers = usersSnap.val() as Record<string, any>;
+              for (const [uId, uData] of Object.entries(allUsers)) {
+                if (uData?.affiliateCode && String(uData.affiliateCode).toUpperCase() === refCode) {
+                  level1Uid = uId;
+                  await set(ref(db, `affiliateCodes/${refCode}`), uId);
+                  break;
+                }
+              }
+            }
+          }
+
+          // 2. Resolve Level 2 & Level 3 uplines
+          if (level1Uid && level1Uid !== user.uid) {
+            const l1Snap = await get(ref(db, `users/${level1Uid}`));
+            if (l1Snap.exists()) {
+              const l1Data = l1Snap.val();
+              level2Uid = l1Data.referredBy || null;
+
+              if (level2Uid && level2Uid !== user.uid) {
+                const l2Snap = await get(ref(db, `users/${level2Uid}`));
+                if (l2Snap.exists()) {
+                  const l2Data = l2Snap.val();
+                  level3Uid = l2Data.referredBy || null;
+                  if (level3Uid === user.uid) level3Uid = null;
+                }
+              }
+            }
+          }
+        } catch (lookupErr) {
+          console.warn("Referral resolution warning:", lookupErr);
+        }
+      }
+
       await set(ref(db, `users/${user.uid}`), {
         displayName: formattedPhone,
         phone: formattedPhone,
         email,
         affiliateCode,
         createdAt: Date.now(),
+        referredBy: level1Uid || null,
+        referredByL2: level2Uid || null,
+        referredByL3: level3Uid || null,
+        referralCodeUsed: refCode || null,
       });
 
-      /* referral tracking */
-      const refCode = params.get("ref");
+      /* Record in referral registries */
       if (refCode) {
         await set(ref(db, `referrals/${refCode}/${user.uid}`), {
           displayName: formattedPhone,
+          phone: formattedPhone,
+          createdAt: Date.now(),
+          status: "active",
+        });
+      }
+
+      if (level1Uid) {
+        await set(ref(db, `userReferrals/${level1Uid}/level1/${user.uid}`), {
+          displayName: formattedPhone,
+          phone: formattedPhone,
+          createdAt: Date.now(),
+          status: "active",
+        });
+      }
+
+      if (level2Uid) {
+        await set(ref(db, `userReferrals/${level2Uid}/level2/${user.uid}`), {
+          displayName: formattedPhone,
+          phone: formattedPhone,
+          createdAt: Date.now(),
+          status: "active",
+        });
+      }
+
+      if (level3Uid) {
+        await set(ref(db, `userReferrals/${level3Uid}/level3/${user.uid}`), {
+          displayName: formattedPhone,
+          phone: formattedPhone,
           createdAt: Date.now(),
           status: "active",
         });

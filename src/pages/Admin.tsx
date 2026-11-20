@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ref, onValue, update, set } from "firebase/database";
+import { ref, onValue, update, set, get, remove, push } from "firebase/database";
 import { db } from "@/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { BOTS, getBotById } from "@/lib/bots";
@@ -57,11 +57,23 @@ interface PaymentItem {
   amount: number;
   currency?: string;
   type?: string;
+  depositType?: string;
   botId?: string;
   botName?: string;
   status: string;
   description?: string;
   createdAt: number;
+  network?: string;
+  networkName?: string;
+  phone?: string;
+  senderName?: string;
+  accountNo?: string;
+  accountName?: string;
+  proofUrl?: string;
+  approvedAt?: number;
+  rejectedAt?: number;
+  commissionProcessed?: boolean;
+  adminNote?: string;
 }
 
 interface UserProfile {
@@ -120,8 +132,11 @@ export default function Admin() {
   const [botSearch, setBotSearch] = useState("");
   const [withdrawStatus, setWithdrawStatus] = useState<"all" | "pending" | "completed" | "rejected">("all");
   const [withdrawSearch, setWithdrawSearch] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | "pending" | "completed" | "rejected">("all");
   const [paymentSearch, setPaymentSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
+  const [selectedPayment, setSelectedPayment] = useState<PaymentItem | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Action states
   const [processingKey, setProcessingKey] = useState<string | null>(null);
@@ -233,11 +248,23 @@ export default function Admin() {
                 amount: Number(p.amount || 0),
                 currency: p.currency || "USD",
                 type: p.type || "deposit",
+                depositType: p.depositType,
                 botId: p.botId,
                 botName: p.botName,
-                status: p.status || "completed",
+                status: p.status || "pending",
                 description: p.description,
                 createdAt: Number(p.createdAt || 0),
+                network: p.network,
+                networkName: p.networkName,
+                phone: p.phone,
+                senderName: p.senderName,
+                accountNo: p.accountNo,
+                accountName: p.accountName,
+                proofUrl: p.proofUrl,
+                approvedAt: p.approvedAt,
+                rejectedAt: p.rejectedAt,
+                commissionProcessed: p.commissionProcessed,
+                adminNote: p.adminNote,
               });
             });
           }
@@ -314,6 +341,146 @@ export default function Admin() {
     }
   }
 
+  /* ── Actions: Deposit Approval, Rejection & Deletion ───────── */
+  async function handleApproveDeposit(p: PaymentItem) {
+    if (p.status === "completed") {
+      showMsg("This deposit is already completed/approved.", "err");
+      return;
+    }
+    const confirmMsg = `Approve deposit of $${fmt(p.amount)} for User (${p.phone || p.uid.slice(0, 8)})?\n\nThis will credit their wallet balance and automatically distribute multi-level referral commissions:\n• Level 1 (Direct): 12%\n• Level 2: 2%\n• Level 3: 1%`;
+    if (!confirm(confirmMsg)) return;
+
+    setProcessingKey(p.key);
+    try {
+      const depositAmount = Number(p.amount || 0);
+
+      // 1. Fetch depositor's user profile to resolve upline referral chain
+      const userSnap = await get(ref(db, `users/${p.uid}`));
+      let level1Uid: string | null = null;
+      let level2Uid: string | null = null;
+      let level3Uid: string | null = null;
+      let depositorPhone = p.phone || "Downline User";
+
+      if (userSnap.exists()) {
+        const uData = userSnap.val();
+        depositorPhone = uData.phone || uData.displayName || depositorPhone;
+        level1Uid = uData.referredBy || null;
+        level2Uid = uData.referredByL2 || null;
+        level3Uid = uData.referredByL3 || null;
+
+        // Traverse uplines dynamically if L2/L3 not pre-stored
+        if (level1Uid && !level2Uid) {
+          const l1Snap = await get(ref(db, `users/${level1Uid}`));
+          if (l1Snap.exists()) {
+            level2Uid = l1Snap.val().referredBy || null;
+            if (level2Uid && !level3Uid) {
+              const l2Snap = await get(ref(db, `users/${level2Uid}`));
+              if (l2Snap.exists()) {
+                level3Uid = l2Snap.val().referredBy || null;
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Distribute multi-tier commissions: 12% (L1), 2% (L2), 1% (L3)
+      const commissionTiers: { uid: string; level: number; pct: number }[] = [];
+      if (level1Uid && level1Uid !== p.uid) commissionTiers.push({ uid: level1Uid, level: 1, pct: 12 });
+      if (level2Uid && level2Uid !== p.uid && level2Uid !== level1Uid) commissionTiers.push({ uid: level2Uid, level: 2, pct: 2 });
+      if (level3Uid && level3Uid !== p.uid && level3Uid !== level1Uid && level3Uid !== level2Uid) commissionTiers.push({ uid: level3Uid, level: 3, pct: 1 });
+
+      for (const tier of commissionTiers) {
+        const commAmt = parseFloat(((depositAmount * tier.pct) / 100).toFixed(2));
+        if (commAmt > 0) {
+          // A) Credit upline wallet balance in userPayments
+          await push(ref(db, `userPayments/${tier.uid}`), {
+            amount: commAmt,
+            currency: p.currency || "USD",
+            type: "referral_commission",
+            status: "completed",
+            description: `Level ${tier.level} (${tier.pct}%) Commission from ${depositorPhone}`,
+            fromUid: p.uid,
+            fromPhone: depositorPhone,
+            level: tier.level,
+            percentage: tier.pct,
+            depositKey: p.key,
+            depositAmount: depositAmount,
+            createdAt: Date.now(),
+          });
+
+          // B) Record in referralEarnings for affiliate tracking
+          await push(ref(db, `referralEarnings/${tier.uid}`), {
+            amount: commAmt,
+            currency: p.currency || "USD",
+            level: tier.level,
+            percentage: tier.pct,
+            fromUid: p.uid,
+            fromPhone: depositorPhone,
+            depositKey: p.key,
+            depositAmount: depositAmount,
+            createdAt: Date.now(),
+          });
+        }
+      }
+
+      // 3. Mark the deposit as completed
+      await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
+        status: "completed",
+        approvedAt: Date.now(),
+        commissionProcessed: true,
+        adminNote: "Approved by administrator with multi-tier referral commissions paid.",
+      });
+
+      showMsg(`Deposit of $${fmt(depositAmount)} approved and commissions distributed! ✅`);
+      if (selectedPayment?.key === p.key) {
+        setSelectedPayment(null);
+      }
+    } catch (err: any) {
+      showMsg(err?.message || "Failed to approve deposit.", "err");
+    } finally {
+      setProcessingKey(null);
+    }
+  }
+
+  async function handleRejectDeposit(p: PaymentItem) {
+    const reason = prompt("Enter reason for rejection (optional):", "Invalid payment proof or funds not received");
+    if (reason === null) return;
+    setProcessingKey(p.key);
+    try {
+      await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
+        status: "rejected",
+        rejectedAt: Date.now(),
+        adminNote: reason.trim() || "Rejected by administrator",
+      });
+      showMsg(`Deposit of $${fmt(p.amount)} rejected. ❌`, "err");
+      if (selectedPayment?.key === p.key) {
+        setSelectedPayment(null);
+      }
+    } catch (err: any) {
+      showMsg(err?.message || "Failed to reject deposit.", "err");
+    } finally {
+      setProcessingKey(null);
+    }
+  }
+
+  async function handleDeleteDeposit(p: PaymentItem) {
+    if (!confirm(`Are you sure you want to PERMANENTLY DELETE deposit record $${fmt(p.amount)} (${p.key})? This action cannot be undone.`)) {
+      return;
+    }
+    setProcessingKey(p.key);
+    try {
+      await remove(ref(db, `userPayments/${p.uid}/${p.key}`));
+      showMsg("Deposit record permanently deleted. 🗑️");
+      if (selectedPayment?.key === p.key) {
+        setSelectedPayment(null);
+      }
+    } catch (err: any) {
+      showMsg(err?.message || "Failed to delete deposit.", "err");
+    } finally {
+      setProcessingKey(null);
+    }
+  }
+
   /* ── Calculations & Metrics ────────────────────────── */
   const pendingWithdrawals = useMemo(
     () => withdrawals.filter((w) => w.status === "pending"),
@@ -373,17 +540,31 @@ export default function Admin() {
     });
   }, [withdrawals, withdrawStatus, withdrawSearch]);
 
+  const pendingPayments = useMemo(
+    () => payments.filter((p) => (p.status === "pending" || !p.status) && p.type !== "bot_reward"),
+    [payments]
+  );
+
   const filteredPayments = useMemo(() => {
-    if (!paymentSearch.trim()) return payments;
-    const q = paymentSearch.toLowerCase();
-    return payments.filter(
-      (p) =>
+    return payments.filter((p) => {
+      const matchStatus =
+        paymentStatusFilter === "all" ||
+        (paymentStatusFilter === "pending" && (p.status === "pending" || !p.status)) ||
+        p.status === paymentStatusFilter;
+      const q = paymentSearch.trim().toLowerCase();
+      const matchSearch =
+        !q ||
         p.uid.toLowerCase().includes(q) ||
+        (p.phone && p.phone.toLowerCase().includes(q)) ||
+        (p.senderName && p.senderName.toLowerCase().includes(q)) ||
+        (p.networkName && p.networkName.toLowerCase().includes(q)) ||
+        (p.accountNo && p.accountNo.toLowerCase().includes(q)) ||
         (p.type && p.type.toLowerCase().includes(q)) ||
         (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.botName && p.botName.toLowerCase().includes(q))
-    );
-  }, [payments, paymentSearch]);
+        (p.botName && p.botName.toLowerCase().includes(q));
+      return matchStatus && matchSearch;
+    });
+  }, [payments, paymentStatusFilter, paymentSearch]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return usersList;
@@ -402,7 +583,7 @@ export default function Admin() {
     { key: "overview", label: "Overview", icon: "📊" },
     { key: "bots", label: "Fleet Monitor", icon: "🤖", badge: userBots.length },
     { key: "withdrawals", label: "Withdrawals", icon: "💸", badge: pendingWithdrawals.length },
-    { key: "payments", label: "Payments", icon: "💳" },
+    { key: "payments", label: "Payments & Deposits", icon: "💳", badge: pendingPayments.length },
     { key: "users", label: "Users Directory", icon: "👥", badge: usersList.length },
     { key: "notifications", label: "Alerts & Broadcast", icon: "🔔" },
     { key: "movies", label: "Movies & Media", icon: "🎬" },
@@ -1341,10 +1522,11 @@ export default function Admin() {
               )}
 
               {/* ──────────────────────────────────────────────────────────
-                  TAB 4: PAYMENTS & DEPOSITS HISTORY
+                  TAB 4: PAYMENTS & DEPOSITS MANAGEMENT
               ────────────────────────────────────────────────────────── */}
               {tab === "payments" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Header & Controls */}
                   <div
                     style={{
                       display: "flex",
@@ -1355,86 +1537,452 @@ export default function Admin() {
                     }}
                   >
                     <div>
-                      <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>All Payment Transactions</h2>
+                      <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Deposits & Payments Management</h2>
                       <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
-                        Total Recorded: {payments.length} transactions
+                        Review, approve, or reject deposits with multi-tier commission distribution (12% L1 · 2% L2 · 1% L3)
                       </div>
                     </div>
                     <input
                       className="input"
                       value={paymentSearch}
                       onChange={(e) => setPaymentSearch(e.target.value)}
-                      placeholder="Search transactions…"
-                      style={{ maxWidth: 280, width: "100%", padding: "8px 14px", fontSize: 13 }}
+                      placeholder="Search phone, sender, UID, method…"
+                      style={{ maxWidth: 320, width: "100%", padding: "9px 14px", fontSize: 13 }}
                     />
                   </div>
 
-                  <div className="neu-card" style={{ borderRadius: 18, overflow: "hidden" }}>
+                  {/* Status Filter Tabs */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {[
+                      { key: "all", label: `All (${payments.length})` },
+                      { key: "pending", label: `Pending Review (${pendingPayments.length})`, alert: pendingPayments.length > 0 },
+                      { key: "completed", label: `Completed (${payments.filter((p) => p.status === "completed").length})` },
+                      { key: "rejected", label: `Rejected (${payments.filter((p) => p.status === "rejected").length})` },
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setPaymentStatusFilter(f.key as any)}
+                        style={{
+                          padding: "7px 14px",
+                          borderRadius: 999,
+                          border: paymentStatusFilter === f.key ? "1.5px solid var(--accent)" : "1px solid var(--stroke)",
+                          background: paymentStatusFilter === f.key ? "rgba(0,166,81,0.12)" : "var(--bg1)",
+                          color: paymentStatusFilter === f.key ? "var(--accent)" : "var(--text)",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          position: "relative",
+                        }}
+                      >
+                        {f.alert && (
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ef4444" }} />
+                        )}
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Pending Alert Notice */}
+                  {pendingPayments.length > 0 && paymentStatusFilter === "all" && (
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: 14,
+                        background: "rgba(245,158,11,0.12)",
+                        border: "1.5px solid rgba(245,158,11,0.3)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                        <span style={{ fontSize: 18 }}>⚠️</span>
+                        <span>
+                          <strong>{pendingPayments.length} pending deposit(s)</strong> awaiting review. Approving will automatically distribute 12% to direct referrer, 2% to Level 2, and 1% to Level 3.
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setPaymentStatusFilter("pending")}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 8,
+                          background: "#d97706",
+                          color: "#fff",
+                          fontWeight: 800,
+                          fontSize: 12,
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        View Pending Only
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Desktop Table View */}
+                  <div className="admin-desktop-table" style={{ borderRadius: 18, overflow: "hidden", background: "var(--bg1)", border: "1px solid var(--stroke)" }}>
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
                         <thead>
                           <tr style={{ background: "var(--bg2)", borderBottom: "1px solid var(--stroke)" }}>
                             <th style={{ padding: "12px 14px", fontWeight: 800 }}>Date</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>User UID</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Type</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Description</th>
+                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>User / Sender</th>
+                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Method</th>
                             <th style={{ padding: "12px 14px", fontWeight: 800 }}>Amount</th>
+                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Proof</th>
                             <th style={{ padding: "12px 14px", fontWeight: 800 }}>Status</th>
+                            <th style={{ padding: "12px 14px", fontWeight: 800, textAlign: "right" }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredPayments.map((p) => (
-                            <tr key={p.key} style={{ borderBottom: "1px solid var(--stroke)" }}>
-                              <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12 }}>
-                                {fmtDate(p.createdAt)}
-                              </td>
-                              <td style={{ padding: "12px 14px", fontFamily: "monospace", fontSize: 12 }}>
-                                {p.uid.slice(0, 10)}…
-                              </td>
-                              <td style={{ padding: "12px 14px" }}>
-                                <span
-                                  style={{
-                                    padding: "3px 8px",
-                                    borderRadius: 6,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    background: p.type === "bot_reward" ? "rgba(14,203,129,0.12)" : "rgba(37,99,235,0.12)",
-                                    color: p.type === "bot_reward" ? "#00a651" : "#2563eb",
-                                  }}
-                                >
-                                  {p.type === "bot_reward" ? "Mining Yield" : "Deposit"}
-                                </span>
-                              </td>
-                              <td style={{ padding: "12px 14px", color: "var(--text)", fontWeight: 600 }}>
-                                {p.description || p.botName || "Wallet Credit"}
-                              </td>
-                              <td style={{ padding: "12px 14px", fontWeight: 900 }}>${fmt(p.amount)}</td>
-                              <td style={{ padding: "12px 14px" }}>
-                                <span
-                                  style={{
-                                    padding: "3px 8px",
-                                    borderRadius: 999,
-                                    fontSize: 11,
-                                    fontWeight: 800,
-                                    background: "rgba(0,166,81,0.12)",
-                                    color: "#00a651",
-                                  }}
-                                >
-                                  {p.status.toUpperCase()}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                          {filteredPayments.map((p) => {
+                            const isPending = p.status === "pending" || !p.status;
+                            const isCompleted = p.status === "completed";
+                            const isProcessing = processingKey === p.key;
+
+                            return (
+                              <tr key={p.key} style={{ borderBottom: "1px solid var(--stroke)" }}>
+                                <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12 }}>
+                                  {fmtDate(p.createdAt)}
+                                </td>
+                                <td style={{ padding: "12px 14px" }}>
+                                  <div style={{ fontWeight: 700, color: "var(--text)" }}>{p.senderName || p.phone || "User"}</div>
+                                  <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--muted)" }}>
+                                    UID: {p.uid.slice(0, 10)}…
+                                  </div>
+                                </td>
+                                <td style={{ padding: "12px 14px" }}>
+                                  <span
+                                    style={{
+                                      padding: "3px 8px",
+                                      borderRadius: 6,
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      background: p.type === "bot_reward" ? "rgba(14,203,129,0.12)" : "rgba(37,99,235,0.12)",
+                                      color: p.type === "bot_reward" ? "#00a651" : "#2563eb",
+                                    }}
+                                  >
+                                    {p.networkName || (p.type === "bot_reward" ? "Mining Yield" : p.type || "Deposit")}
+                                  </span>
+                                </td>
+                                <td style={{ padding: "12px 14px", fontWeight: 900, fontSize: 14 }}>
+                                  ${fmt(p.amount)} <span style={{ fontSize: 11, color: "var(--muted)" }}>{p.currency || "USD"}</span>
+                                </td>
+                                <td style={{ padding: "12px 14px" }}>
+                                  {p.proofUrl ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewImage(p.proofUrl || null)}
+                                      style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        padding: 0,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        color: "var(--accent)",
+                                        fontWeight: 700,
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      <img
+                                        src={p.proofUrl}
+                                        alt="Proof"
+                                        style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 6, border: "1px solid var(--stroke)" }}
+                                      />
+                                      <span>View</span>
+                                    </button>
+                                  ) : (
+                                    <span style={{ fontSize: 11, color: "var(--muted)" }}>No file</span>
+                                  )}
+                                </td>
+                                <td style={{ padding: "12px 14px" }}>
+                                  <span
+                                    style={{
+                                      padding: "3px 9px",
+                                      borderRadius: 999,
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      background: isCompleted
+                                        ? "rgba(14,203,129,0.14)"
+                                        : p.status === "rejected"
+                                        ? "rgba(239,68,68,0.14)"
+                                        : "rgba(245,158,11,0.14)",
+                                      color: isCompleted
+                                        ? "#00a651"
+                                        : p.status === "rejected"
+                                        ? "#ef4444"
+                                        : "#d97706",
+                                    }}
+                                  >
+                                    {p.status ? p.status.toUpperCase() : "PENDING"}
+                                  </span>
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                                    <button
+                                      onClick={() => setSelectedPayment(p)}
+                                      title="View Details & Proof"
+                                      style={{
+                                        padding: "6px 11px",
+                                        borderRadius: 8,
+                                        background: "var(--bg2)",
+                                        border: "1px solid var(--stroke)",
+                                        color: "var(--text)",
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      Details
+                                    </button>
+                                    {isPending && (
+                                      <>
+                                        <button
+                                          onClick={() => handleApproveDeposit(p)}
+                                          disabled={isProcessing}
+                                          title="Approve & Distribute Multi-tier Commissions"
+                                          style={{
+                                            padding: "6px 12px",
+                                            borderRadius: 8,
+                                            background: "linear-gradient(135deg, #00a651, #007a3c)",
+                                            border: "none",
+                                            color: "#fff",
+                                            fontSize: 11.5,
+                                            fontWeight: 800,
+                                            cursor: isProcessing ? "not-allowed" : "pointer",
+                                            boxShadow: "0 2px 6px rgba(0,166,81,0.3)",
+                                          }}
+                                        >
+                                          {isProcessing ? "…" : "Approve"}
+                                        </button>
+                                        <button
+                                          onClick={() => handleRejectDeposit(p)}
+                                          disabled={isProcessing}
+                                          title="Reject Deposit"
+                                          style={{
+                                            padding: "6px 10px",
+                                            borderRadius: 8,
+                                            background: "rgba(239,68,68,0.12)",
+                                            border: "1px solid rgba(239,68,68,0.25)",
+                                            color: "#ef4444",
+                                            fontSize: 11.5,
+                                            fontWeight: 700,
+                                            cursor: isProcessing ? "not-allowed" : "pointer",
+                                          }}
+                                        >
+                                          Reject
+                                        </button>
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleDeleteDeposit(p)}
+                                      disabled={isProcessing}
+                                      title="Delete record permanently"
+                                      style={{
+                                        padding: "6px 8px",
+                                        borderRadius: 8,
+                                        background: "transparent",
+                                        border: "none",
+                                        color: "var(--muted)",
+                                        cursor: isProcessing ? "not-allowed" : "pointer",
+                                        fontSize: 14,
+                                      }}
+                                    >
+                                      🗑️
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                           {filteredPayments.length === 0 && (
                             <tr>
-                              <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>
-                                No payment records found.
+                              <td colSpan={7} style={{ padding: 32, textAlign: "center", color: "var(--muted)" }}>
+                                No transactions found matching criteria.
                               </td>
                             </tr>
                           )}
                         </tbody>
                       </table>
                     </div>
+                  </div>
+
+                  {/* Mobile Cards View (responsive) */}
+                  <div className="admin-mobile-cards" style={{ display: "none", flexDirection: "column", gap: 12 }}>
+                    {filteredPayments.map((p) => {
+                      const isPending = p.status === "pending" || !p.status;
+                      const isCompleted = p.status === "completed";
+                      const isProcessing = processingKey === p.key;
+
+                      return (
+                        <div
+                          key={p.key}
+                          className="neu-card"
+                          style={{
+                            borderRadius: 16,
+                            padding: "16px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 12,
+                            background: "var(--bg1)",
+                            border: isPending ? "1.5px solid rgba(245,158,11,0.4)" : "1px solid var(--stroke)",
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <div>
+                              <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>{fmtDate(p.createdAt)}</div>
+                              <div style={{ fontWeight: 800, fontSize: 15, color: "var(--text)", marginTop: 2 }}>
+                                {p.senderName || p.phone || "Deposit"}
+                              </div>
+                              <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--muted)" }}>
+                                {p.phone || `UID: ${p.uid.slice(0, 10)}…`}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontWeight: 900, fontSize: 18, color: "var(--text)" }}>
+                                ${fmt(p.amount)} <span style={{ fontSize: 11, color: "var(--muted)" }}>{p.currency || "USD"}</span>
+                              </div>
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  marginTop: 4,
+                                  padding: "3px 8px",
+                                  borderRadius: 999,
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  background: isCompleted
+                                    ? "rgba(14,203,129,0.14)"
+                                    : p.status === "rejected"
+                                    ? "rgba(239,68,68,0.14)"
+                                    : "rgba(245,158,11,0.14)",
+                                  color: isCompleted
+                                    ? "#00a651"
+                                    : p.status === "rejected"
+                                    ? "#ef4444"
+                                    : "#d97706",
+                                }}
+                              >
+                                {p.status ? p.status.toUpperCase() : "PENDING"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg2)", padding: "10px 12px", borderRadius: 10, fontSize: 12 }}>
+                            <div style={{ flex: 1 }}>
+                              <span style={{ color: "var(--muted)", fontWeight: 600 }}>Method: </span>
+                              <strong>{p.networkName || p.type || "Deposit"}</strong>
+                              {p.accountNo && (
+                                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2, fontFamily: "monospace" }}>
+                                  Acc: {p.accountNo}
+                                </div>
+                              )}
+                            </div>
+                            {p.proofUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewImage(p.proofUrl || null)}
+                                style={{
+                                  border: "none",
+                                  background: "transparent",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  color: "var(--accent)",
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                }}
+                              >
+                                <img
+                                  src={p.proofUrl}
+                                  alt="Proof"
+                                  style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 8, border: "1.5px solid var(--accent)" }}
+                                />
+                                <span>Proof</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Action Buttons for Mobile Card */}
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <button
+                              onClick={() => setSelectedPayment(p)}
+                              style={{
+                                flex: 1,
+                                padding: "9px 0",
+                                borderRadius: 10,
+                                background: "var(--bg2)",
+                                border: "1px solid var(--stroke)",
+                                color: "var(--text)",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Details
+                            </button>
+                            {isPending && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveDeposit(p)}
+                                  disabled={isProcessing}
+                                  style={{
+                                    flex: 1.4,
+                                    padding: "9px 0",
+                                    borderRadius: 10,
+                                    background: "linear-gradient(135deg, #00a651, #007a3c)",
+                                    border: "none",
+                                    color: "#fff",
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: isProcessing ? "not-allowed" : "pointer",
+                                  }}
+                                >
+                                  {isProcessing ? "…" : "Approve"}
+                                </button>
+                                <button
+                                  onClick={() => handleRejectDeposit(p)}
+                                  disabled={isProcessing}
+                                  style={{
+                                    padding: "9px 12px",
+                                    borderRadius: 10,
+                                    background: "rgba(239,68,68,0.12)",
+                                    border: "1px solid rgba(239,68,68,0.25)",
+                                    color: "#ef4444",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: isProcessing ? "not-allowed" : "pointer",
+                                  }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleDeleteDeposit(p)}
+                              disabled={isProcessing}
+                              style={{
+                                padding: "9px 12px",
+                                borderRadius: 10,
+                                background: "transparent",
+                                border: "1px solid var(--stroke)",
+                                color: "var(--muted)",
+                                cursor: isProcessing ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1555,6 +2103,381 @@ export default function Admin() {
         </main>
       </div>
 
+      {/* ── Payment Details & Image Proof Confirmation Card Modal ── */}
+      {selectedPayment && (
+        <div
+          onClick={() => setSelectedPayment(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "var(--bg1)",
+              borderRadius: 22,
+              padding: "24px 20px",
+              border: "1.5px solid var(--stroke)",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>Deposit Confirmation Card</h3>
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>
+                  Key: {selectedPayment.key}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPayment(null)}
+                style={{
+                  background: "var(--bg2)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 32,
+                  height: 32,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                  color: "var(--muted)",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Amount & Status highlight */}
+            <div
+              style={{
+                borderRadius: 16,
+                padding: "16px",
+                background: "var(--bg2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
+                  Deposit Amount
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: "var(--text)", marginTop: 2 }}>
+                  ${fmt(selectedPayment.amount)} <span style={{ fontSize: 14, color: "var(--accent)" }}>{selectedPayment.currency || "USD"}</span>
+                </div>
+              </div>
+              <span
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: 999,
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  background: selectedPayment.status === "completed"
+                    ? "rgba(14,203,129,0.15)"
+                    : selectedPayment.status === "rejected"
+                    ? "rgba(239,68,68,0.15)"
+                    : "rgba(245,158,11,0.15)",
+                  color: selectedPayment.status === "completed"
+                    ? "#00a651"
+                    : selectedPayment.status === "rejected"
+                    ? "#ef4444"
+                    : "#d97706",
+                }}
+              >
+                {(selectedPayment.status || "PENDING").toUpperCase()}
+              </span>
+            </div>
+
+            {/* Details Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 12.5 }}>
+              <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10 }}>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Sender Name</div>
+                <div style={{ fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{selectedPayment.senderName || "—"}</div>
+              </div>
+              <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10 }}>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Phone / Contact</div>
+                <div style={{ fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{selectedPayment.phone || "—"}</div>
+              </div>
+              <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10 }}>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Network / Gateway</div>
+                <div style={{ fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{selectedPayment.networkName || selectedPayment.network || selectedPayment.type || "—"}</div>
+              </div>
+              <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10 }}>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Target Account</div>
+                <div style={{ fontWeight: 800, color: "var(--text)", marginTop: 2, fontFamily: "monospace" }}>{selectedPayment.accountNo || "—"}</div>
+              </div>
+              <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10, gridColumn: "span 2" }}>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>User UID</div>
+                <div style={{ fontWeight: 700, color: "var(--text)", marginTop: 2, fontFamily: "monospace", wordBreak: "break-all" }}>
+                  {selectedPayment.uid}
+                </div>
+              </div>
+              <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10, gridColumn: "span 2" }}>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Submission Time</div>
+                <div style={{ fontWeight: 700, color: "var(--text)", marginTop: 2 }}>
+                  {fmtDate(selectedPayment.createdAt)}
+                </div>
+              </div>
+            </div>
+
+            {/* Referral Commission Calculation Preview */}
+            <div
+              style={{
+                borderRadius: 14,
+                padding: "12px 14px",
+                background: "rgba(0,166,81,0.06)",
+                border: "1px solid rgba(0,166,81,0.2)",
+                fontSize: 12,
+              }}
+            >
+              <div style={{ fontWeight: 800, color: "var(--accent)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                <span>💰</span>
+                <span>Referral Commissions Schedule (15% Total)</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 8, textAlign: "center" }}>
+                <div style={{ background: "var(--bg1)", padding: "8px 4px", borderRadius: 8 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700 }}>Level 1 (Direct)</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#00a651", marginTop: 2 }}>
+                    ${fmt((selectedPayment.amount * 12) / 100)}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: "var(--muted)" }}>12%</div>
+                </div>
+                <div style={{ background: "var(--bg1)", padding: "8px 4px", borderRadius: 8 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700 }}>Level 2</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#2563eb", marginTop: 2 }}>
+                    ${fmt((selectedPayment.amount * 2) / 100)}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: "var(--muted)" }}>2%</div>
+                </div>
+                <div style={{ background: "var(--bg1)", padding: "8px 4px", borderRadius: 8 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700 }}>Level 3</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#f59e0b", marginTop: 2 }}>
+                    ${fmt((selectedPayment.amount * 1) / 100)}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: "var(--muted)" }}>1%</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 6, textAlign: "center" }}>
+                {selectedPayment.commissionProcessed
+                  ? "✅ Multi-tier commissions already processed and credited."
+                  : "⏳ Commissions will be distributed automatically when you click Approve."}
+              </div>
+            </div>
+
+            {/* Payment Proof Screenshot */}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text)", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Payment Screenshot Proof</span>
+                {selectedPayment.proofUrl && (
+                  <button
+                    onClick={() => setPreviewImage(selectedPayment.proofUrl || null)}
+                    style={{ background: "transparent", border: "none", color: "var(--accent)", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    View Fullscreen ↗
+                  </button>
+                )}
+              </div>
+              {selectedPayment.proofUrl ? (
+                <div
+                  onClick={() => setPreviewImage(selectedPayment.proofUrl || null)}
+                  style={{
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    border: "1.5px solid var(--stroke)",
+                    maxHeight: 220,
+                    cursor: "zoom-in",
+                    position: "relative",
+                  }}
+                >
+                  <img
+                    src={selectedPayment.proofUrl}
+                    alt="Payment proof screenshot"
+                    style={{ width: "100%", height: 220, objectFit: "contain", background: "#000" }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 8,
+                      right: 8,
+                      background: "rgba(0,0,0,0.7)",
+                      color: "#fff",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    🔍 Click to Enlarge
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: "24px 0", textAlign: "center", background: "var(--bg2)", borderRadius: 12, color: "var(--muted)", fontSize: 12 }}>
+                  No payment proof image uploaded for this transaction.
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons in Modal */}
+            <div style={{ display: "flex", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
+              {selectedPayment.status !== "completed" && (
+                <button
+                  onClick={() => handleApproveDeposit(selectedPayment)}
+                  disabled={processingKey === selectedPayment.key}
+                  style={{
+                    flex: 1,
+                    minWidth: 140,
+                    padding: "12px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: "linear-gradient(135deg, #00a651, #007a3c)",
+                    color: "#fff",
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(0,166,81,0.3)",
+                  }}
+                >
+                  {processingKey === selectedPayment.key ? "Processing…" : "Approve & Pay Commissions"}
+                </button>
+              )}
+              {selectedPayment.status !== "rejected" && selectedPayment.status !== "completed" && (
+                <button
+                  onClick={() => handleRejectDeposit(selectedPayment)}
+                  disabled={processingKey === selectedPayment.key}
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: 12,
+                    border: "1.5px solid #ef4444",
+                    background: "rgba(239,68,68,0.1)",
+                    color: "#ef4444",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Reject
+                </button>
+              )}
+              <button
+                onClick={() => handleDeleteDeposit(selectedPayment)}
+                disabled={processingKey === selectedPayment.key}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "1px solid var(--stroke)",
+                  background: "var(--bg2)",
+                  color: "#ef4444",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+                title="Delete deposit record"
+              >
+                Delete 🗑️
+              </button>
+              <button
+                onClick={() => setSelectedPayment(null)}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: 12,
+                  border: "1px solid var(--stroke)",
+                  background: "var(--bg2)",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Fullscreen Proof Lightbox ── */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 20000,
+            background: "rgba(0,0,0,0.85)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh" }}>
+            <img
+              src={previewImage}
+              alt="Fullscreen payment proof"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "85vh",
+                objectFit: "contain",
+                borderRadius: 12,
+                boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 12 }}>
+              <a
+                href={previewImage}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  background: "var(--accent)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  textDecoration: "none",
+                }}
+              >
+                Open in New Tab ↗
+              </a>
+              <button
+                onClick={() => setPreviewImage(null)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  background: "rgba(255,255,255,0.2)",
+                  color: "#fff",
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── CSS Responsive Styles ── */}
       <style>{`
         @media (min-width: 901px) {
@@ -1575,6 +2498,22 @@ export default function Admin() {
         @media (max-width: 900px) {
           .admin-main {
             margin-left: 0 !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .admin-desktop-table {
+            display: none !important;
+          }
+          .admin-mobile-cards {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .admin-desktop-table {
+            display: block !important;
+          }
+          .admin-mobile-cards {
+            display: none !important;
           }
         }
       `}</style>
