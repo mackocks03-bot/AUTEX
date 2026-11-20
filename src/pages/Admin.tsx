@@ -457,23 +457,23 @@ export default function Admin() {
 
       // 2. Remove commissions from userPayments & referralEarnings for each upline
       for (const uplineUid of uplineUids) {
-        // Remove matching commission entries from userPayments
+        // Remove matching commission entries from userPayments (strictly for this deposit)
         const pSnap = await get(ref(db, `userPayments/${uplineUid}`));
         if (pSnap.exists()) {
           const pays = pSnap.val();
           for (const [key, val] of Object.entries(pays as Record<string, any>)) {
-            if (val?.depositKey === p.key || (val?.type === "referral_commission" && val?.fromUid === p.uid && Number(val?.depositAmount) === Number(p.amount))) {
+            if (val?.depositKey === p.key) {
               await remove(ref(db, `userPayments/${uplineUid}/${key}`));
             }
           }
         }
 
-        // Remove matching entries from referralEarnings
+        // Remove matching entries from referralEarnings (strictly for this deposit)
         const eSnap = await get(ref(db, `referralEarnings/${uplineUid}`));
         if (eSnap.exists()) {
           const earns = eSnap.val();
           for (const [key, val] of Object.entries(earns as Record<string, any>)) {
-            if (val?.depositKey === p.key || (val?.fromUid === p.uid && Number(val?.depositAmount) === Number(p.amount))) {
+            if (val?.depositKey === p.key) {
               await remove(ref(db, `referralEarnings/${uplineUid}/${key}`));
             }
           }

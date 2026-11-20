@@ -333,10 +333,10 @@ export default function Affiliate() {
         </div>
 
         <h1 style={{ fontSize: "clamp(18px, 4.5vw, 22px)", fontWeight: 900, color: "#ffffff", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-          Invite Friends. Earn 15% Total Commissions.
+          Invite Friends. Earn 15% on Every Deposit.
         </h1>
         <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.75)", margin: "0 0 16px", lineHeight: 1.5, maxWidth: 360 }}>
-          Earn <strong style={{ color: "#f0b90b" }}>12% Direct</strong> + <strong style={{ color: "#0ecb81" }}>2% Level 2</strong> + <strong style={{ color: "#60a5fa" }}>1% Level 3</strong> automatically on every approved deposit.
+          Earn <strong style={{ color: "#f0b90b" }}>12% Direct</strong> + <strong style={{ color: "#0ecb81" }}>2% Level 2</strong> + <strong style={{ color: "#60a5fa" }}>1% Level 3</strong> automatically on <strong style={{ color: "#ffffff", textDecoration: "underline" }}>every single deposit</strong> made by your downliners — not just their first deposit!
         </p>
 
         {/* 3 Metric Chips */}
@@ -657,7 +657,7 @@ export default function Affiliate() {
             <path d="M12 8h.01" />
           </svg>
           <span style={{ fontSize: 11, color: "var(--text)", lineHeight: 1.4 }}>
-            Commissions are processed in real-time instantly when an admin approves your downline's deposit.
+            Commissions are processed in real-time on <strong>every deposit</strong> your downlines make (recurring lifetime commissions, not only their first deposit).
           </span>
         </div>
       </div>
