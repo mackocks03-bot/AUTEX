@@ -397,7 +397,7 @@ function ProofUploadSheet({ open, onClose, net, amount, phone, tabKey, onDone }:
           style={{
             width: "100%", padding: "11px 12px", borderRadius: 10,
             border: "1.5px solid var(--stroke)", background: "var(--bg2)",
-            fontSize: 13, fontWeight: 600, color: "var(--text)", outline: "none",
+            fontSize: 16, fontWeight: 600, color: "var(--text)", outline: "none",
             boxSizing: "border-box", transition: "border-color 0.2s",
           }}
           onFocus={e => (e.target.style.borderColor = "var(--accent)")}
@@ -797,7 +797,7 @@ export default function Deposit() {
                 style={{
                   flex: 1, padding: "12px 12px", borderRadius: "0 10px 10px 0",
                   border: `1.5px solid ${phoneDirty ? (phoneVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`, borderLeft: "none",
-                  background: "var(--bg2)", fontSize: 14, fontWeight: 600,
+                  background: "var(--bg2)", fontSize: 16, fontWeight: 600,
                   color: "var(--text)", outline: "none", transition: "border-color 0.2s",
                 }}
                 onFocus={e => (e.target.style.borderColor = phoneDirty ? (phoneVal.ok ? "#0ecb81" : "#f6465d") : "var(--accent)")}
@@ -826,7 +826,7 @@ export default function Deposit() {
               style={{
                 width: "100%", padding: "12px 12px", borderRadius: 10, boxSizing: "border-box",
                 border: `1.5px solid ${addrDirty ? (addrVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`,
-                background: "var(--bg2)", fontSize: 12, fontWeight: 600, fontFamily: "monospace",
+                background: "var(--bg2)", fontSize: 16, fontWeight: 600, fontFamily: "monospace",
                 color: "var(--text)", outline: "none", transition: "border-color 0.2s",
               }}
               onFocus={e => (e.target.style.borderColor = addrDirty ? (addrVal.ok ? "#0ecb81" : "#f6465d") : "var(--accent)")}
