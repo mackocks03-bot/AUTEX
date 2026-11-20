@@ -306,6 +306,7 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
   const isWithdrawal = item.category === "withdraw";
   const isAdjustment = item.category === "adjustment";
   const isBot = item.category === "bot";
+  const isDeposit = item.category === "deposit";
   const isDebit = isWithdrawal || (isBot && item.type !== "bot_reward") || (isAdjustment && item.amount < 0);
 
   const title =
