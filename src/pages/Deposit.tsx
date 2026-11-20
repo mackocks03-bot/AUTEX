@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { push, ref as dbRef } from "firebase/database";
+import { push, ref as dbRef, onValue } from "firebase/database";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { db, storage } from "@/firebase";
@@ -26,14 +26,14 @@ interface Network {
   accountNo: string;
 }
 
-const ZW_NETWORKS: Network[] = [
+const DEFAULT_ZW_NETWORKS: Network[] = [
   { id: "ecocash",   name: "EcoCash",  logo: ecocashLogo,                                                                                                      color: "#e31e24", bg: "rgba(227,30,36,0.10)",   currency: "USD", minAmount: 10, hint: "07X XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0771000001" },
   { id: "onemoney",  name: "OneMoney", logo: onemoneyLogo,                                                                                                     color: "#f7a800", bg: "rgba(247,168,0,0.10)",   currency: "USD", minAmount: 10, hint: "071 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0712000001" },
   { id: "innbucks",  name: "InnBucks", logo: "https://innbucks.co.zw/wp-content/uploads/2022/03/Innbucks-logo.png",                                            color: "#1565c0", bg: "rgba(21,101,192,0.10)",  currency: "USD", minAmount: 10, hint: "077 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0773000001" },
   { id: "telecash",  name: "TeleCash", logo: telecashLogo,                                                                                                     color: "#0057a8", bg: "rgba(0,87,168,0.10)",    currency: "USD", minAmount: 10, hint: "073 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0732000001" },
 ];
 
-const CRYPTO_NETWORKS: Network[] = [
+const DEFAULT_CRYPTO_NETWORKS: Network[] = [
   { id: "usdt-trc20", name: "USDT",    network: "TRC20 · Tron",           logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",           color: "#26a17b", bg: "rgba(38,161,123,0.10)",  currency: "USDT", minAmount: 10,     confirmations: 1,  accountName: "AUTEX CRYPTO WALLET", accountNo: "TYour_USDT_TRC20_Address_Here" },
   { id: "usdt-erc20", name: "USDT",    network: "ERC20 · Ethereum",        logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",           color: "#627EEA", bg: "rgba(98,126,234,0.10)", currency: "USDT", minAmount: 10,     confirmations: 6,  accountName: "AUTEX CRYPTO WALLET", accountNo: "0xYour_ERC20_Address" },
   { id: "bnb-bsc",    name: "BNB",     network: "BEP20 · BNB Smart Chain", logo: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",    color: "#F3BA2F", bg: "rgba(243,186,47,0.10)", currency: "BNB",  minAmount: 10,     confirmations: 15, accountName: "AUTEX CRYPTO WALLET", accountNo: "0xYour_BNB_Address" },
@@ -648,6 +648,58 @@ export default function Deposit() {
   const [phoneDirty, setPhoneDirty]   = useState(false);
   const [addrDirty, setAddrDirty]     = useState(false);
 
+  // Live Payment Methods from Firebase Database
+  const [mobileNetworks, setMobileNetworks] = useState<Network[]>(DEFAULT_ZW_NETWORKS);
+  const [cryptoNetworks, setCryptoNetworks] = useState<Network[]>(DEFAULT_CRYPTO_NETWORKS);
+
+  useEffect(() => {
+    const r = dbRef(db, "paymentMethods");
+    return onValue(r, (snap) => {
+      const data = snap.val() as Record<string, any> | null;
+      if (data) {
+        const allMethods: Network[] = Object.entries(data)
+          .map(([id, val]) => ({
+            id,
+            name: val.name || id,
+            network: val.network,
+            logo: val.logo || (val.category === "crypto" ? "https://assets.coingecko.com/coins/images/325/large/Tether.png" : ecocashLogo),
+            color: val.color || (val.category === "crypto" ? "#26a17b" : "#00a651"),
+            bg: val.bg || (val.category === "crypto" ? "rgba(38,161,123,0.10)" : "rgba(0,166,81,0.10)"),
+            currency: val.currency || (val.category === "crypto" ? "USDT" : "USD"),
+            minAmount: Number(val.minAmount) || 10,
+            hint: val.hint || (val.category === "crypto" ? "Wallet address" : "07X XXX XXXX"),
+            accountName: val.accountName || "AUTEX OFFICIAL",
+            accountNo: val.accountNo || "",
+            confirmations: val.confirmations,
+            instructions: val.instructions,
+            enabled: val.enabled !== false,
+            order: val.order || 99,
+            category: val.category || "mobile",
+          }))
+          .filter(n => (n as any).enabled !== false)
+          .sort((a, b) => ((a as any).order || 99) - ((b as any).order || 99));
+
+        const mobiles = allMethods.filter((n: any) => n.category === "mobile");
+        const cryptos = allMethods.filter((n: any) => n.category === "crypto");
+
+        if (mobiles.length > 0) setMobileNetworks(mobiles);
+        if (cryptos.length > 0) setCryptoNetworks(cryptos);
+      }
+    });
+  }, []);
+
+  const nets = tab === "mobile" ? mobileNetworks : cryptoNetworks;
+
+  // Keep selectedNet synced with latest account details from DB
+  useEffect(() => {
+    if (selectedNet) {
+      const updated = nets.find(n => n.id === selectedNet.id);
+      if (updated && (updated.accountNo !== selectedNet.accountNo || updated.accountName !== selectedNet.accountName)) {
+        setNet(updated);
+      }
+    }
+  }, [nets, selectedNet]);
+
   // Computed validation state
   const phoneVal = tab === "mobile" ? validateZwPhone(phone) : { ok: true, msg: "" };
   const addrVal  = tab === "crypto" && selectedNet
@@ -665,7 +717,6 @@ export default function Deposit() {
     setSheet1(false); setSheet2(false); setSheet3(false); setDone(false);
   }
 
-  const nets = tab === "mobile" ? ZW_NETWORKS : CRYPTO_NETWORKS;
   const quickAmounts = tab === "mobile" ? [10, 20, 50, 100, 200] : [10, 50, 100, 200, 500];
 
   function handleProceed() {

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { BOTS, getBotById } from "@/lib/bots";
 import { AdminNotifications } from "./AdminNotifications";
 import { AdminSettings } from "./AdminSettings";
+import { AdminPaymentAccounts } from "./AdminPaymentAccounts";
 
 /* ── Types ─────────────────────────────────────────── */
 type AdminTab =
@@ -13,6 +14,7 @@ type AdminTab =
   | "bots"
   | "withdrawals"
   | "payments"
+  | "payment-methods"
   | "users"
   | "notifications"
   | "settings";
@@ -130,7 +132,7 @@ export default function Admin() {
     const tabParam = params.get("tab");
     const validTabs: AdminTab[] = [
       "overview", "bots", "withdrawals", "payments",
-      "users", "notifications", "settings",
+      "payment-methods", "users", "notifications", "settings",
     ];
     if (tabParam && validTabs.includes(tabParam as AdminTab)) {
       setTab(tabParam as AdminTab);
@@ -969,6 +971,7 @@ export default function Admin() {
     { key: "bots", label: "Fleet Monitor", icon: "🤖", badge: userBots.length },
     { key: "withdrawals", label: "Withdrawals", icon: "💸", badge: pendingWithdrawals.length },
     { key: "payments", label: "Payments & Deposits", icon: "💳", badge: pendingPayments.length },
+    { key: "payment-methods", label: "Deposit Accounts", icon: "🏦" },
     { key: "users", label: "Users Directory", icon: "👥", badge: usersList.length },
     { key: "notifications", label: "Alerts & Broadcast", icon: "🔔" },
     { key: "settings", label: "Settings", icon: "⚙️" },
@@ -1264,6 +1267,8 @@ export default function Admin() {
                   ? "Withdrawal Requests"
                   : tab === "payments"
                   ? "Payments & Deposits"
+                  : tab === "payment-methods"
+                  ? "Deposit Accounts & Addresses"
                   : tab === "users"
                   ? "Users Directory"
                   : tab === "notifications"
@@ -2653,6 +2658,11 @@ export default function Admin() {
                   </div>
                 </div>
               )}
+
+              {/* ──────────────────────────────────────────────────────────
+                  TAB: DEPOSIT ACCOUNTS & ADDRESSES
+              ────────────────────────────────────────────────────────── */}
+              {tab === "payment-methods" && <AdminPaymentAccounts />}
 
               {/* ──────────────────────────────────────────────────────────
                   TAB 6: BROADCAST ALERTS & NOTIFICATIONS
