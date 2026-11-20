@@ -145,7 +145,7 @@ export default function Admin() {
 
   /* ── Firebase Listeners ────────────────────────────── */
   useEffect(() => {
-    if (!user) {
+    if (!user || !isAdmin) {
       setLoading(false);
       return;
     }
@@ -408,6 +408,59 @@ export default function Admin() {
     { key: "movies", label: "Movies & Media", icon: "🎬" },
     { key: "settings", label: "Settings", icon: "⚙️" },
   ];
+
+  if (!isAdmin) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+          background: "var(--bg0)",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 420,
+            width: "100%",
+            background: "var(--bg1)",
+            borderRadius: 20,
+            padding: "36px 28px",
+            border: "1px solid var(--stroke)",
+            boxShadow: "-6px -6px 14px rgba(255,255,255,0.9), 6px 6px 14px rgba(163,177,198,0.5)",
+          }}
+        >
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px", color: "var(--text)" }}>
+            Access Restricted
+          </h2>
+          <p style={{ fontSize: 13.5, color: "var(--muted)", margin: "0 0 24px", lineHeight: 1.5 }}>
+            You do not have administrative privileges to view this control center.
+          </p>
+          <Link
+            to="/"
+            style={{
+              display: "inline-block",
+              padding: "12px 24px",
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #00a651, #007a3c)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 14,
+              textDecoration: "none",
+              boxShadow: "0 4px 14px rgba(0,166,81,0.3)",
+            }}
+          >
+            Return to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg2)", color: "var(--text)" }}>
@@ -697,43 +750,6 @@ export default function Admin() {
             </div>
           </div>
         </header>
-
-        {/* ── Admin Activation Banner if role not yet set in DB ── */}
-        {!isAdmin && (
-          <div
-            style={{
-              padding: "10px 18px",
-              background: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(217,119,6,0.12))",
-              borderBottom: "1px solid rgba(245,158,11,0.35)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)" }}>
-              <span>👑</span>
-              <span><strong>Admin Preview Mode:</strong> Full management controls active.</span>
-            </div>
-            <button
-              onClick={handleClaimAdminRole}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 8,
-                background: "#d97706",
-                color: "#fff",
-                fontWeight: 800,
-                fontSize: 12,
-                border: "none",
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(217,119,6,0.35)",
-              }}
-            >
-              Grant Permanent Admin to My Account
-            </button>
-          </div>
-        )}
 
         {/* Tab Content Container */}
         <main style={{ padding: "18px 18px 40px", maxWidth: 1200, width: "100%", margin: "0 auto" }}>

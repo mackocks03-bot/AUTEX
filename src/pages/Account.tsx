@@ -800,54 +800,44 @@ export default function Account() {
         </div>
       </div>
 
-      {/* ── 7. Admin Control Center Banner ── */}
-      <div
-        style={{
-          borderRadius: 18,
-          background: isAdmin
-            ? "linear-gradient(135deg, rgba(240,185,11,0.18), rgba(217,119,6,0.1))"
-            : "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(67,56,202,0.05))",
-          border: isAdmin
-            ? "1.5px solid rgba(240,185,11,0.4)"
-            : "1.5px solid rgba(99,102,241,0.25)",
-          padding: "16px",
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: isAdmin
-                ? "linear-gradient(135deg, #f0b90b, #d97706)"
-                : "linear-gradient(135deg, #6366f1, #4338ca)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              boxShadow: isAdmin
-                ? "0 4px 14px rgba(240,185,11,0.4)"
-                : "0 4px 14px rgba(99,102,241,0.3)",
-            }}
-          >
-            <span style={{ fontSize: 20 }}>{isAdmin ? "👑" : "⚙️"}</span>
-          </div>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 14, color: "var(--text)" }}>
-              {isAdmin ? "Admin Control Center" : "Admin Dashboard"}
+      {/* ── 7. Admin Control Center Banner (Admin only) ── */}
+      {isAdmin && (
+        <div
+          style={{
+            borderRadius: 18,
+            background: "linear-gradient(135deg, rgba(240,185,11,0.18), rgba(217,119,6,0.1))",
+            border: "1.5px solid rgba(240,185,11,0.4)",
+            padding: "16px",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #f0b90b, #d97706)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 4px 14px rgba(240,185,11,0.4)",
+              }}
+            >
+              <span style={{ fontSize: 20 }}>👑</span>
             </div>
-            <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>
-              {isAdmin
-                ? "Full platform management · withdrawals · users · bots"
-                : "Manage platform settings, users, bots, and payouts"}
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 14, color: "var(--text)" }}>
+                Admin Control Center
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>
+                Full platform management · withdrawals · users · bots
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Quick module links for admin */}
-        {isAdmin && (
+          {/* Quick module links for admin */}
           <div
             style={{
               display: "grid",
@@ -883,35 +873,31 @@ export default function Account() {
               </Link>
             ))}
           </div>
-        )}
 
-        <Link
-          to="/admin"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            padding: "11px",
-            borderRadius: 11,
-            background: isAdmin
-              ? "linear-gradient(135deg, #d97706, #b45309)"
-              : "linear-gradient(135deg, #6366f1, #4338ca)",
-            color: "#ffffff",
-            fontWeight: 800,
-            fontSize: 13,
-            textDecoration: "none",
-            boxShadow: isAdmin
-              ? "0 4px 14px rgba(217,119,6,0.4)"
-              : "0 4px 14px rgba(99,102,241,0.3)",
-          }}
-        >
-          <span>Open Admin Dashboard</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </Link>
-      </div>
+          <Link
+            to="/admin"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "11px",
+              borderRadius: 11,
+              background: "linear-gradient(135deg, #d97706, #b45309)",
+              color: "#ffffff",
+              fontWeight: 800,
+              fontSize: 13,
+              textDecoration: "none",
+              boxShadow: "0 4px 14px rgba(217,119,6,0.4)",
+            }}
+          >
+            <span>Open Admin Dashboard</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+        </div>
+      )}
 
       {/* ── 8. Binance Style Sign Out Button ── */}
       <button

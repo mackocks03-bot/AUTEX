@@ -80,13 +80,14 @@ function PublicOnlyRoute({ children }: { children: ReactElement }) {
 
 /** Route wrapper for admin pages: requires user and admin role */
 function AdminRoute({ children }: { children: ReactElement }) {
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
 
   if (loading) {
     return <AuthLoadingScreen />;
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
   return children;
 }
 
