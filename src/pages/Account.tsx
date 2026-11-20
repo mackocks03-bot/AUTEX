@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, update } from "firebase/database";
 import { db } from "@/firebase";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
@@ -79,7 +79,9 @@ export default function Account() {
           }
         });
       }
-      setBalance(Math.max(0, totalDeposits - totalWithdraws));
+      const bal = Math.max(0, totalDeposits - totalWithdraws);
+      setBalance(bal);
+      update(ref(db, `users/${user.uid}`), { balance: bal }).catch(() => {});
     });
 
     const unsubW = onValue(wRef, (snap) => {
@@ -93,7 +95,9 @@ export default function Account() {
           }
         });
       }
-      setBalance(Math.max(0, totalDeposits - totalWithdraws));
+      const bal = Math.max(0, totalDeposits - totalWithdraws);
+      setBalance(bal);
+      update(ref(db, `users/${user.uid}`), { balance: bal }).catch(() => {});
     });
 
     return () => {

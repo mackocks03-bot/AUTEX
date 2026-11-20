@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, update } from "firebase/database";
 import { db } from "@/firebase";
 
 // ─── Crypto Data ──────────────────────────────────────────────────────────────
@@ -586,7 +586,9 @@ export default function Home() {
           }
         });
       }
-      setBalance(Math.max(0, totalDeposits - totalWithdraws));
+      const bal = Math.max(0, totalDeposits - totalWithdraws);
+      setBalance(bal);
+      update(ref(db, `users/${user.uid}`), { balance: bal }).catch(() => {});
     });
 
     const unsubW = onValue(wRef, (snap) => {
@@ -600,7 +602,9 @@ export default function Home() {
           }
         });
       }
-      setBalance(Math.max(0, totalDeposits - totalWithdraws));
+      const bal = Math.max(0, totalDeposits - totalWithdraws);
+      setBalance(bal);
+      update(ref(db, `users/${user.uid}`), { balance: bal }).catch(() => {});
     });
 
     return () => {

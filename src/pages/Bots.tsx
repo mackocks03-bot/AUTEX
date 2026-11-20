@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
-import { ref, onValue, push, set } from "firebase/database";
+import { ref, onValue, push, set, get, update } from "firebase/database";
 import { db } from "@/firebase";
 import { BOTS, type BotDef } from "@/lib/bots";
 
@@ -431,8 +431,10 @@ export default function Bots() {
         if (["completed","success","paid"].includes(String(v.status||"").toLowerCase()))
           dep += Number(v.amount)||0;
       });
-      setBalance(Math.max(0, dep - with_));
+      const cur = Math.max(0, dep - with_);
+      setBalance(cur);
       setBalanceLoading(false);
+      update(ref(db, `users/${user.uid}`), { balance: cur }).catch(() => {});
     });
     const u2 = onValue(wRef, snap => {
       with_ = 0;
@@ -441,7 +443,9 @@ export default function Bots() {
         if (!["failed","rejected","cancelled"].includes(String(v.status||"").toLowerCase()))
           with_ += Number(v.amount)||0;
       });
-      setBalance(Math.max(0, dep - with_));
+      const cur = Math.max(0, dep - with_);
+      setBalance(cur);
+      update(ref(db, `users/${user.uid}`), { balance: cur }).catch(() => {});
     });
     return () => { u1(); u2(); };
   }, [user]);
@@ -498,6 +502,17 @@ export default function Bots() {
               createdAt: Number(bVal.activatedAt) || Date.now(),
               processedAt: Number(bVal.activatedAt) || Date.now(),
             });
+
+            // Also deduct from users/${user.uid}/balance in database
+            const uRef = ref(db, `users/${user.uid}`);
+            const uSnap = await get(uRef);
+            if (uSnap.exists() && uSnap.val().balance !== undefined) {
+              const cur = Number(uSnap.val().balance) || 0;
+              await update(uRef, {
+                balance: Math.max(0, parseFloat((cur - amt).toFixed(2))),
+                updatedAt: Date.now(),
+              });
+            }
           } catch (err) {
             console.error("Backfill debit failed:", err);
           }
@@ -575,7 +590,20 @@ export default function Bots() {
         processedAt: Date.now(),
       });
 
-      // 3. Send transaction notification to userNotifications
+      // 3. Directly deduct from users/${user.uid}/balance in database
+      const userDbRef = ref(db, `users/${user.uid}`);
+      const userSnap = await get(userDbRef);
+      const curDbBal = userSnap.exists() && userSnap.val().balance !== undefined
+        ? Number(userSnap.val().balance)
+        : balance;
+      const newBal = Math.max(0, parseFloat((curDbBal - investAmt).toFixed(2)));
+      await update(userDbRef, {
+        balance: newBal,
+        updatedAt: Date.now(),
+      });
+      setBalance(newBal);
+
+      // 4. Send transaction notification to userNotifications
       const notifRef = push(ref(db, `userNotifications/${user.uid}`));
       await set(notifRef, {
         type: "bot_activation",

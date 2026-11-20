@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
-import { ref, onValue, push, set, update } from "firebase/database";
+import { ref, onValue, push, set, update, get } from "firebase/database";
 import { db } from "@/firebase";
 import { getBotById } from "@/lib/bots";
 
@@ -164,7 +164,18 @@ export default function MyBots() {
         totalEarned: (b.totalEarned || 0) + claimAmount,
       });
 
-      // 3. Send notification for daily yield
+      // 3. Update users/${user.uid}/balance in database directly
+      const uRef = ref(db, `users/${user.uid}`);
+      const uSnap = await get(uRef);
+      if (uSnap.exists()) {
+        const curDbBal = Number(uSnap.val().balance) || 0;
+        await update(uRef, {
+          balance: parseFloat((curDbBal + claimAmount).toFixed(2)),
+          updatedAt: Date.now(),
+        });
+      }
+
+      // 4. Send notification for daily yield
       const notifRef = push(ref(db, `userNotifications/${user.uid}`));
       await set(notifRef, {
         type: "bot_reward",

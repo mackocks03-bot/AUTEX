@@ -239,6 +239,7 @@ export default function Register() {
         phone: formattedPhone,
         email,
         affiliateCode,
+        balance: 0,
         createdAt: Date.now(),
         referredBy: level1Uid || null,
         referredByL2: level2Uid || null,

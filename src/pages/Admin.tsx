@@ -509,6 +509,9 @@ export default function Admin() {
             processedAt: Date.now(),
             adminNote: "Approved & processed by admin",
           });
+          // Update users/${w.uid}/balance in database
+          const newBal = getUserBalance(w.uid);
+          await update(ref(db, `users/${w.uid}`), { balance: newBal, updatedAt: Date.now() }).catch(() => {});
           // Notify user
           await sendUserNotification(
             w.uid,
@@ -703,6 +706,10 @@ export default function Admin() {
             commissionProcessed: true,
             adminNote: "Approved by administrator with multi-tier referral commissions paid.",
           });
+
+          // Sync updated balance directly to users/${p.uid}/balance in database
+          const curBal = getUserBalance(p.uid);
+          await update(ref(db, `users/${p.uid}`), { balance: curBal + depositAmount, updatedAt: Date.now() }).catch(() => {});
 
           // 4. Notify depositor
           await sendUserNotification(
