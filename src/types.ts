@@ -39,6 +39,7 @@ export type AppNotification = {
   createdAt: number;
   type?: "deposit_approved" | "deposit_rejected" | "commission" | "withdrawal_approved" | "withdrawal_rejected" | "broadcast" | string;
   read?: boolean;
+  meta?: Record<string, string | number | boolean | null>;
 };
 
 export type MovieGroup = {

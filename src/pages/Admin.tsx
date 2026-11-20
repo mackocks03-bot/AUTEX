@@ -447,7 +447,8 @@ export default function Admin() {
     uid: string,
     title: string,
     message: string,
-    type: string
+    type: string,
+    meta?: Record<string, string | number | boolean | null>
   ) {
     try {
       await push(ref(db, `userNotifications/${uid}`), {
@@ -456,6 +457,7 @@ export default function Admin() {
         type,
         createdAt: Date.now(),
         read: false,
+        ...(meta ? { meta } : {}),
       });
     } catch (err) {
       console.warn("sendUserNotification error:", err);
@@ -486,7 +488,18 @@ export default function Admin() {
             w.uid,
             "💸 Withdrawal Approved",
             `Your withdrawal of $${fmt(w.amount)} to ${w.destination} has been approved and processed successfully.`,
-            "withdrawal_approved"
+            "withdrawal_approved",
+            {
+              amount: w.amount,
+              currency: w.currency || "USD",
+              network: w.networkName || w.network || null,
+              destination: w.destination || null,
+              accountName: w.accountName || null,
+              fee: w.fee ?? null,
+              netAmount: w.fee ? w.amount - w.fee : w.amount,
+              reference: w.key,
+              processedAt: Date.now(),
+            }
           );
           showMsg(`Withdrawal of $${fmt(w.amount)} marked as completed! ✅`);
         } catch (err: any) {
@@ -524,7 +537,17 @@ export default function Admin() {
             w.uid,
             "🚫 Withdrawal Rejected",
             `Your withdrawal request of $${fmt(w.amount)} has been rejected. Reason: ${(reason || "").trim() || "Please contact support for details."}`,
-            "withdrawal_rejected"
+            "withdrawal_rejected",
+            {
+              amount: w.amount,
+              currency: w.currency || "USD",
+              network: w.networkName || w.network || null,
+              destination: w.destination || null,
+              accountName: w.accountName || null,
+              reason: (reason || "").trim() || "Verification issue / invalid destination details",
+              reference: w.key,
+              rejectedAt: Date.now(),
+            }
           );
           showMsg(`Withdrawal for user ${w.uid.slice(0, 6)} rejected. ❌`, "err");
         } catch (err: any) {
@@ -630,7 +653,19 @@ export default function Admin() {
                 tier.uid,
                 "💰 Commission Earned!",
                 `You earned a Level ${tier.level} referral commission of $${commAmt.toFixed(2)} (${tier.pct}%) from ${depositorPhone}'s deposit of $${depositAmount.toFixed(2)}.`,
-                "commission"
+                "commission",
+                {
+                  commissionAmount: commAmt,
+                  currency: p.currency || "USD",
+                  level: tier.level,
+                  percentage: tier.pct,
+                  fromUser: depositorPhone,
+                  fromUid: p.uid,
+                  depositAmount: depositAmount,
+                  depositReference: p.key,
+                  network: p.networkName || p.network || null,
+                  earnedAt: Date.now(),
+                }
               );
             }
           }
@@ -648,7 +683,18 @@ export default function Admin() {
             p.uid,
             "✅ Deposit Approved",
             `Your deposit of $${fmt(depositAmount)} has been approved and credited to your wallet. Happy investing!`,
-            "deposit_approved"
+            "deposit_approved",
+            {
+              amount: depositAmount,
+              currency: p.currency || "USD",
+              network: p.networkName || p.network || null,
+              phone: p.phone || null,
+              senderName: p.senderName || null,
+              accountNo: p.accountNo || null,
+              botName: p.botName || null,
+              reference: p.key,
+              approvedAt: Date.now(),
+            }
           );
 
           showMsg(`Deposit of $${fmt(depositAmount)} approved and commissions distributed! ✅`);
@@ -738,7 +784,18 @@ export default function Admin() {
             p.uid,
             "❌ Deposit Rejected",
             `Your deposit of $${fmt(p.amount)} has been rejected. Reason: ${(reason || "").trim() || "Invalid payment proof or funds not received. Please contact support."}`,
-            "deposit_rejected"
+            "deposit_rejected",
+            {
+              amount: p.amount,
+              currency: p.currency || "USD",
+              network: p.networkName || p.network || null,
+              phone: p.phone || null,
+              senderName: p.senderName || null,
+              accountNo: p.accountNo || null,
+              reason: (reason || "").trim() || "Invalid payment proof or funds not received",
+              reference: p.key,
+              rejectedAt: Date.now(),
+            }
           );
           showMsg(`Deposit of $${fmt(p.amount)} rejected and commissions cancelled (if any). ❌`, "err");
           if (selectedPayment?.key === p.key) {
