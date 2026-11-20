@@ -37,6 +37,8 @@ export type AppNotification = {
   message: string;
   imageUrl?: string;
   createdAt: number;
+  type?: "deposit_approved" | "deposit_rejected" | "commission" | "withdrawal_approved" | "withdrawal_rejected" | "broadcast" | string;
+  read?: boolean;
 };
 
 export type MovieGroup = {

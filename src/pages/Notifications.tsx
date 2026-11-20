@@ -8,24 +8,48 @@ import type { AppNotification } from "@/types";
 
 export default function Notifications() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [globalNotifs, setGlobalNotifs] = useState<AppNotification[]>([]);
+  const [personalNotifs, setPersonalNotifs] = useState<AppNotification[]>([]);
   const [reads, setReads] = useState<Record<string, boolean>>({});
 
+  // Global broadcast notifications
   useEffect(() => {
     const r = ref(db, "notifications");
     return onValue(r, (snap) => {
       const data = snap.val() as Record<string, AppNotification> | null;
       if (data) {
-        setNotifications(
+        setGlobalNotifs(
           Object.entries(data)
-            .map(([id, val]) => ({ ...val, id }))
+            .map(([id, val]) => ({ ...val, id: `global_${id}`, type: val.type || "broadcast" }))
             .sort((a, b) => b.createdAt - a.createdAt)
         );
       } else {
-        setNotifications([]);
+        setGlobalNotifs([]);
       }
     });
   }, []);
+
+  // Personal per-user notifications (from admin actions)
+  useEffect(() => {
+    if (!user) return;
+    const r = ref(db, `userNotifications/${user.uid}`);
+    return onValue(r, (snap) => {
+      const data = snap.val() as Record<string, AppNotification> | null;
+      if (data) {
+        setPersonalNotifs(
+          Object.entries(data)
+            .map(([id, val]) => ({ ...val, id: `personal_${id}` }))
+            .sort((a, b) => b.createdAt - a.createdAt)
+        );
+      } else {
+        setPersonalNotifs([]);
+      }
+    });
+  }, [user]);
+
+  const notifications = [...personalNotifs, ...globalNotifs].sort(
+    (a, b) => b.createdAt - a.createdAt
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -83,6 +107,13 @@ export default function Notifications() {
       <div className="grid" style={{ gap: 12 }}>
         {notifications.map((n) => {
           const isUnread = n.id && !reads[n.id];
+          const typeIcon =
+            n.type === "deposit_approved" ? "✅" :
+            n.type === "deposit_rejected" ? "❌" :
+            n.type === "commission" ? "💰" :
+            n.type === "withdrawal_approved" ? "💸" :
+            n.type === "withdrawal_rejected" ? "🚫" :
+            n.type === "broadcast" ? "📢" : "🔔";
           return (
             <div
               key={n.id}
@@ -99,12 +130,24 @@ export default function Notifications() {
               }}
             >
               <div className="card-body row" style={{ gap: 16 }}>
-                {n.imageUrl && (
+                {n.imageUrl ? (
                   <img
                     src={n.imageUrl}
                     alt=""
                     style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover" }}
                   />
+                ) : (
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                    background: n.type === "deposit_approved" ? "rgba(0,166,81,0.15)" :
+                                n.type === "deposit_rejected" || n.type === "withdrawal_rejected" ? "rgba(239,68,68,0.15)" :
+                                n.type === "commission" ? "rgba(234,179,8,0.15)" :
+                                n.type === "withdrawal_approved" ? "rgba(56,189,248,0.15)" :
+                                "rgba(99,102,241,0.15)",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+                  }}>
+                    {typeIcon}
+                  </div>
                 )}
                 <div style={{ flex: 1 }}>
                   <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>

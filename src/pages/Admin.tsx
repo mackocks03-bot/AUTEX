@@ -442,6 +442,26 @@ export default function Admin() {
     };
   }, [isAdmin]);
 
+  /* ── Helper: Send per-user notification ─────────────── */
+  async function sendUserNotification(
+    uid: string,
+    title: string,
+    message: string,
+    type: string
+  ) {
+    try {
+      await push(ref(db, `userNotifications/${uid}`), {
+        title,
+        message,
+        type,
+        createdAt: Date.now(),
+        read: false,
+      });
+    } catch (err) {
+      console.warn("sendUserNotification error:", err);
+    }
+  }
+
   /* ── Actions: Withdrawals Approval / Rejection ───────── */
   function handleApproveWithdrawal(w: WithdrawItem) {
     setPopupDialog({
@@ -461,6 +481,13 @@ export default function Admin() {
             processedAt: Date.now(),
             adminNote: "Approved & processed by admin",
           });
+          // Notify user
+          await sendUserNotification(
+            w.uid,
+            "💸 Withdrawal Approved",
+            `Your withdrawal of $${fmt(w.amount)} to ${w.destination} has been approved and processed successfully.`,
+            "withdrawal_approved"
+          );
           showMsg(`Withdrawal of $${fmt(w.amount)} marked as completed! ✅`);
         } catch (err: any) {
           showMsg(err?.message || "Failed to approve withdrawal.", "err");
@@ -492,6 +519,13 @@ export default function Admin() {
             processedAt: Date.now(),
             adminNote: (reason || "").trim() || "Rejected by administrator",
           });
+          // Notify user
+          await sendUserNotification(
+            w.uid,
+            "🚫 Withdrawal Rejected",
+            `Your withdrawal request of $${fmt(w.amount)} has been rejected. Reason: ${(reason || "").trim() || "Please contact support for details."}`,
+            "withdrawal_rejected"
+          );
           showMsg(`Withdrawal for user ${w.uid.slice(0, 6)} rejected. ❌`, "err");
         } catch (err: any) {
           showMsg(err?.message || "Failed to reject withdrawal.", "err");
@@ -590,6 +624,14 @@ export default function Admin() {
                 depositAmount: depositAmount,
                 createdAt: Date.now(),
               });
+
+              // C) Notify upline about their commission
+              await sendUserNotification(
+                tier.uid,
+                "💰 Commission Earned!",
+                `You earned a Level ${tier.level} referral commission of $${commAmt.toFixed(2)} (${tier.pct}%) from ${depositorPhone}'s deposit of $${depositAmount.toFixed(2)}.`,
+                "commission"
+              );
             }
           }
 
@@ -600,6 +642,14 @@ export default function Admin() {
             commissionProcessed: true,
             adminNote: "Approved by administrator with multi-tier referral commissions paid.",
           });
+
+          // 4. Notify depositor
+          await sendUserNotification(
+            p.uid,
+            "✅ Deposit Approved",
+            `Your deposit of $${fmt(depositAmount)} has been approved and credited to your wallet. Happy investing!`,
+            "deposit_approved"
+          );
 
           showMsg(`Deposit of $${fmt(depositAmount)} approved and commissions distributed! ✅`);
           if (selectedPayment?.key === p.key) {
@@ -683,6 +733,13 @@ export default function Admin() {
             commissionProcessed: false,
             adminNote: (reason || "").trim() || "Rejected by administrator",
           });
+          // Notify depositor
+          await sendUserNotification(
+            p.uid,
+            "❌ Deposit Rejected",
+            `Your deposit of $${fmt(p.amount)} has been rejected. Reason: ${(reason || "").trim() || "Invalid payment proof or funds not received. Please contact support."}`,
+            "deposit_rejected"
+          );
           showMsg(`Deposit of $${fmt(p.amount)} rejected and commissions cancelled (if any). ❌`, "err");
           if (selectedPayment?.key === p.key) {
             setSelectedPayment(null);
