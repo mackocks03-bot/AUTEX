@@ -1562,7 +1562,7 @@ export default function Admin() {
                             <div>
                               <div style={{ fontWeight: 800 }}>${fmt(w.amount)}</div>
                               <div style={{ fontSize: 11, color: "var(--muted)" }}>
-                                {w.networkName || "Withdraw"} · {w.destination.slice(0, 10)}…
+                                {w.networkName || (w.type === "bot_activation" ? "🤖 Bot Activation" : w.type === "admin_deduction" ? "⚖️ Admin Deduction" : "Withdraw")} · {w.destination.slice(0, 16)}…
                               </div>
                             </div>
                             <div>
@@ -1811,7 +1811,9 @@ export default function Admin() {
                                 <td style={{ padding: "12px 14px", fontFamily: "monospace", fontSize: 12 }}>
                                   {w.uid.slice(0, 10)}…
                                 </td>
-                                <td style={{ padding: "12px 14px", fontWeight: 700 }}>{w.networkName || "Withdraw"}</td>
+                                <td style={{ padding: "12px 14px", fontWeight: 700 }}>
+                                  {w.networkName || (w.type === "bot_activation" ? "🤖 Bot Activation" : w.type === "admin_deduction" ? "⚖️ Admin Deduction" : "Withdraw")}
+                                </td>
                                 <td style={{ padding: "12px 14px" }}>
                                   <div style={{ fontWeight: 800 }}>{w.destination}</div>
                                   {w.accountName && (

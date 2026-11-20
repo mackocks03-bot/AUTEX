@@ -164,6 +164,22 @@ export default function MyBots() {
         totalEarned: (b.totalEarned || 0) + claimAmount,
       });
 
+      // 3. Send notification for daily yield
+      const notifRef = push(ref(db, `userNotifications/${user.uid}`));
+      await set(notifRef, {
+        type: "bot_reward",
+        title: "Daily Mining Yield Received",
+        message: `You successfully claimed $${claimAmount.toFixed(2)} USD daily yield from your ${b.botName} bot. The amount has been credited to your wallet balance.`,
+        createdAt: Date.now(),
+        read: false,
+        meta: {
+          amount: claimAmount,
+          currency: "USD",
+          botName: b.botName,
+          reference: payRef.key,
+        },
+      });
+
       setClaimedModal({ name: b.botName, amount: claimAmount });
     } catch (e) {
       console.error("Failed to claim daily return:", e);

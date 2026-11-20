@@ -73,6 +73,21 @@ function getNotificationParagraph(n: AppNotification): string {
     return `Your wallet balance has been adjusted with ${amt} by administrator.${newBal}${reason}${refId}`;
   }
 
+  if (t === "bot_activation") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} USD` : "";
+    const name = meta.botName ? ` ${meta.botName}` : " AI Bot";
+    const daily = meta.dailyReturn != null ? ` earning $${fmt(meta.dailyReturn)}/day (${meta.dailyPct || 0}%)` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `You have successfully activated${name} for ${amt}.${daily} The investment amount has been deducted from your wallet balance.${refId}`;
+  }
+
+  if (t === "bot_reward") {
+    const amt = meta.amount != null ? `$${fmt(meta.amount)} ${meta.currency || "USD"}` : "";
+    const name = meta.botName ? ` from your ${meta.botName} bot` : "";
+    const refId = meta.reference ? ` Ref: ${String(meta.reference).slice(0, 16)}.` : "";
+    return `You received a daily mining yield of ${amt}${name}.${refId} The amount has been credited to your wallet balance.`;
+  }
+
   return n.message;
 }
 
@@ -276,6 +291,8 @@ export default function Notifications() {
               n.type === "withdrawal_approved" ? "💸" :
               n.type === "withdrawal_rejected" ? "🚫" :
               n.type === "balance_adjustment" ? "💵" :
+              n.type === "bot_activation" ? "🤖" :
+              n.type === "bot_reward" ? "⚡" :
               n.type === "broadcast" ? "📢" : "🔔";
 
             const iconBg =
@@ -285,6 +302,8 @@ export default function Notifications() {
               n.type === "withdrawal_approved" ? "rgba(56,189,248,0.15)" :
               n.type === "withdrawal_rejected" ? "rgba(239,68,68,0.15)" :
               n.type === "balance_adjustment" ? "rgba(16,185,129,0.15)" :
+              n.type === "bot_activation" ? "rgba(168,85,247,0.15)" :
+              n.type === "bot_reward" ? "rgba(16,185,129,0.15)" :
               "rgba(99,102,241,0.15)";
 
             const paragraphMessage = getNotificationParagraph(n);

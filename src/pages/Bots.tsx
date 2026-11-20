@@ -221,10 +221,14 @@ function ConfirmSheet({ bot, balance, open, closing, onConfirm, onClose, submitt
               border: "1px solid rgba(255,255,255,0.6)",
               boxShadow: "inset 2px 2px 5px rgba(163,177,198,0.35), inset -2px -2px 5px rgba(255,255,255,0.8)",
             }}>
-              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Wallet Balance</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-                ${fmtFull(balance)}
-              </span>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>Wallet Balance</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>${fmtFull(balance)}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>After Activation</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#00a651" }}>${fmtFull(Math.max(0, balance - amount))}</div>
+              </div>
             </div>
 
             {/* Buttons */}
@@ -448,6 +452,75 @@ export default function Bots() {
     });
   }, [user]);
 
+  // Backfill debit record for any previously activated bots that lacked a deduction
+  useEffect(() => {
+    if (!user) return;
+    const botsRef = ref(db, `userBots/${user.uid}`);
+    const wRef = ref(db, `withdrawRequests/${user.uid}`);
+
+    let botsData: Record<string, any> | null = null;
+    let withData: Record<string, any> | null = null;
+    let synced = false;
+
+    const checkAndSync = () => {
+      if (!botsData || synced) return;
+      const existingDebits = Object.values(withData || {}).filter(
+        (w: any) => w && w.type === "bot_activation"
+      );
+
+      Object.entries(botsData).forEach(async ([bKey, bVal]) => {
+        if (!bVal || typeof bVal !== "object") return;
+        const amt = Number(bVal.amount) || 0;
+        if (amt <= 0) return;
+
+        const alreadyDebited = existingDebits.some(
+          (w: any) =>
+            w.botKey === bKey ||
+            (w.botId === bVal.bot &&
+              Math.abs((Number(w.amount) || 0) - amt) < 0.01 &&
+              Math.abs((Number(w.createdAt) || 0) - (Number(bVal.activatedAt) || 0)) < 120000)
+        );
+
+        if (!alreadyDebited) {
+          try {
+            const debitRef = push(ref(db, `withdrawRequests/${user.uid}`));
+            await set(debitRef, {
+              amount: amt,
+              currency: "USD",
+              type: "bot_activation",
+              botId: bVal.bot || "bot",
+              botName: bVal.botName || "AI Bot",
+              botKey: bKey,
+              destination: `AI Fleet: ${bVal.botName || "AI Bot"}`,
+              status: "completed",
+              description: `Activated ${bVal.botName || "AI Bot"} ($${amt.toFixed(2)}) · ${bVal.dailyPct || 0}% Daily`,
+              createdAt: Number(bVal.activatedAt) || Date.now(),
+              processedAt: Number(bVal.activatedAt) || Date.now(),
+            });
+          } catch (err) {
+            console.error("Backfill debit failed:", err);
+          }
+        }
+      });
+      synced = true;
+    };
+
+    const unsubBots = onValue(botsRef, snap => {
+      botsData = snap.val();
+      checkAndSync();
+    }, { onlyOnce: true });
+
+    const unsubWith = onValue(wRef, snap => {
+      withData = snap.val();
+      checkAndSync();
+    }, { onlyOnce: true });
+
+    return () => {
+      unsubBots();
+      unsubWith();
+    };
+  }, [user]);
+
   function openSheet(bot: BotDef) {
     setActiveBot(bot);
     setDone(false);
@@ -467,20 +540,62 @@ export default function Bots() {
 
   async function confirmInvest() {
     if (!activeBot || !user) return;
+    if (balance < activeBot.investAmount) return;
     setSubmitting(true);
     try {
-      const key = push(ref(db, `userBots/${user.uid}`)).key!;
-      await set(ref(db, `userBots/${user.uid}/${key}`), {
+      const investAmt = Number(activeBot.investAmount) || 0;
+      const dailyReturn = investAmt * (activeBot.dailyPct / 100);
+      const botKey = push(ref(db, `userBots/${user.uid}`)).key!;
+
+      // 1. Save bot record under userBots
+      await set(ref(db, `userBots/${user.uid}/${botKey}`), {
         bot: activeBot.id,
         botName: activeBot.name,
-        amount: activeBot.investAmount,
+        amount: investAmt,
         dailyPct: activeBot.dailyPct,
-        dailyReturn: activeBot.investAmount * (activeBot.dailyPct / 100),
+        dailyReturn: dailyReturn,
         activatedAt: Date.now(),
         status: "active",
       });
+
+      // 2. Immediately record completed debit in withdrawRequests to deduct from user balance
+      const debitRef = push(ref(db, `withdrawRequests/${user.uid}`));
+      await set(debitRef, {
+        amount: investAmt,
+        currency: "USD",
+        type: "bot_activation",
+        botId: activeBot.id,
+        botName: activeBot.name,
+        botKey: botKey,
+        destination: `AI Fleet: ${activeBot.name}`,
+        status: "completed",
+        description: `Activated ${activeBot.name} ($${investAmt.toFixed(2)}) · ${activeBot.dailyPct}% Daily`,
+        createdAt: Date.now(),
+        processedAt: Date.now(),
+      });
+
+      // 3. Send transaction notification to userNotifications
+      const notifRef = push(ref(db, `userNotifications/${user.uid}`));
+      await set(notifRef, {
+        type: "bot_activation",
+        title: "AI Bot Activated",
+        message: `You successfully activated ${activeBot.name} for $${investAmt.toFixed(2)} USD. $${investAmt.toFixed(2)} has been deducted from your wallet balance. Your bot is now generating ${activeBot.dailyPct}% daily returns ($${dailyReturn.toFixed(2)}/day).`,
+        createdAt: Date.now(),
+        read: false,
+        meta: {
+          amount: investAmt,
+          currency: "USD",
+          botName: activeBot.name,
+          dailyReturn: dailyReturn,
+          dailyPct: activeBot.dailyPct,
+          reference: debitRef.key,
+        },
+      });
+
       setDone(true);
-    } catch { /* silent */ } finally {
+    } catch (e) {
+      console.error("Failed to activate bot:", e);
+    } finally {
       setSubmitting(false);
     }
   }

@@ -6,7 +6,7 @@ import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-export type TxCategory = "deposit" | "withdraw" | "commission" | "adjustment";
+export type TxCategory = "deposit" | "withdraw" | "commission" | "adjustment" | "bot";
 
 export interface HistoryItem {
   id: string;
@@ -93,11 +93,11 @@ function SummaryCard({ list }: { list: HistoryItem[] }) {
     .reduce((s, p) => s + p.amount, 0);
 
   const totalWithdrawals = list
-    .filter(p => p.category === "withdraw" && ["completed", "success", "paid"].includes(String(p.status).toLowerCase()))
+    .filter(p => (p.category === "withdraw" || (p.category === "bot" && p.type !== "bot_reward")) && ["completed", "success", "paid"].includes(String(p.status).toLowerCase()))
     .reduce((s, p) => s + p.amount, 0);
 
   const totalCommissions = list
-    .filter(p => p.category === "commission" && ["completed", "success", "paid"].includes(String(p.status).toLowerCase()))
+    .filter(p => (p.category === "commission" || (p.category === "bot" && p.type === "bot_reward")) && ["completed", "success", "paid"].includes(String(p.status).toLowerCase()))
     .reduce((s, p) => s + p.amount, 0);
 
   const stat = (label: string, value: string | number, color?: string) => (
@@ -161,25 +161,29 @@ function TxRow({
   const isCommission = item.category === "commission";
   const isWithdrawal = item.category === "withdraw";
   const isAdjustment = item.category === "adjustment";
+  const isBot = item.category === "bot";
   const isDeposit = item.category === "deposit";
 
   const categoryLabel =
+    isBot ? (item.type === "bot_reward" ? "Mining Yield" : "Bot Activation") :
     isCommission ? "Commission" :
     isWithdrawal ? "Withdrawal" :
     isAdjustment ? "Adjustment" : "Deposit";
 
   const categoryColor =
+    isBot ? "#a855f7" :
     isCommission ? "#facc15" :
     isWithdrawal ? "#38bdf8" :
     isAdjustment ? "#14b8a6" : "var(--text)";
 
   // Amount formatting
-  const isDebit = isWithdrawal || (isAdjustment && item.amount < 0);
+  const isDebit = isWithdrawal || (isBot && item.type !== "bot_reward") || (isAdjustment && item.amount < 0);
   const sign = isDebit ? "-" : "+";
-  const amountColor = isDebit ? "#f6465d" : isCommission ? "#facc15" : "#0ecb81";
+  const amountColor = isDebit ? "#f6465d" : isCommission ? "#facc15" : isBot ? "#a855f7" : "#0ecb81";
 
   // Subtitle text
   const subtext =
+    isBot ? (item.description || item.botName || "AI Trading Bot") :
     isCommission ? (item.description || `Level ${item.level || 1} Referral Earnings`) :
     isWithdrawal ? (`To: ${item.destination || item.network || "Account"}`) :
     isAdjustment ? (item.description || "Admin Balance Update") :
@@ -207,6 +211,7 @@ function TxRow({
         borderRadius: 14,
         flexShrink: 0,
         background:
+          isBot ? "rgba(168,85,247,0.15)" :
           isCommission ? "rgba(250,204,21,0.15)" :
           isWithdrawal ? "rgba(56,189,248,0.15)" :
           isAdjustment ? "rgba(20,184,166,0.15)" :
@@ -216,7 +221,9 @@ function TxRow({
         justifyContent: "center",
         fontSize: 18,
       }}>
-        {isCommission ? (
+        {isBot ? (
+          "🤖"
+        ) : isCommission ? (
           "💰"
         ) : isWithdrawal ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -298,9 +305,11 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
   const isCommission = item.category === "commission";
   const isWithdrawal = item.category === "withdraw";
   const isAdjustment = item.category === "adjustment";
-  const isDebit = isWithdrawal || (isAdjustment && item.amount < 0);
+  const isBot = item.category === "bot";
+  const isDebit = isWithdrawal || (isBot && item.type !== "bot_reward") || (isAdjustment && item.amount < 0);
 
   const title =
+    isBot ? (item.type === "bot_reward" ? "Mining Yield Details" : "Bot Activation Details") :
     isCommission ? "Commission Details" :
     isWithdrawal ? "Withdrawal Details" :
     isAdjustment ? "Adjustment Details" : "Deposit Details";
@@ -353,6 +362,7 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
             borderRadius: 18,
             margin: "0 auto 12px",
             background:
+              isBot ? "rgba(168,85,247,0.15)" :
               isCommission ? "rgba(250,204,21,0.15)" :
               isWithdrawal ? "rgba(56,189,248,0.15)" :
               m.bg,
@@ -361,7 +371,7 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
             justifyContent: "center",
             fontSize: 26,
           }}>
-            {isCommission ? "💰" : isWithdrawal ? "📤" : isAdjustment ? "⚖️" : "📥"}
+            {isBot ? "🤖" : isCommission ? "💰" : isWithdrawal ? "📤" : isAdjustment ? "⚖️" : "📥"}
           </div>
 
           <div style={{ fontSize: 11, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
@@ -383,11 +393,27 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
 
         {/* Details list */}
         <div style={{ padding: "4px 24px 20px" }}>
-          <DetailRow label="Category" value={isCommission ? "Referral Commission" : isWithdrawal ? "Withdrawal Payout" : isAdjustment ? "Balance Adjustment" : "Deposit"} highlight />
+          <DetailRow
+            label="Category"
+            value={
+              isBot ? (item.type === "bot_reward" ? "AI Mining Yield" : "AI Bot Activation") :
+              isCommission ? "Referral Commission" :
+              isWithdrawal ? "Withdrawal Payout" :
+              isAdjustment ? "Balance Adjustment" : "Deposit"
+            }
+            highlight
+          />
           <DetailRow label="Date & Time" value={fmtDateTime(Number(item.createdAt))} />
           <DetailRow label="Reference ID" value={shortRef(ref)} mono />
 
           {/* Conditional Category Rows */}
+          {isBot && (
+            <>
+              {item.botName && <DetailRow label="Bot Name" value={item.botName} highlight />}
+              {item.destination && <DetailRow label="Target Fleet" value={item.destination} />}
+            </>
+          )}
+
           {isWithdrawal && (
             <>
               {item.destination && <DetailRow label="Destination" value={item.destination} />}
@@ -445,7 +471,7 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
             Close
           </button>
           <Link
-            to={isCommission ? "/affiliate" : isWithdrawal ? "/withdraw" : "/deposit"}
+            to={isBot ? "/my-bots" : isCommission ? "/affiliate" : isWithdrawal ? "/withdraw" : "/deposit"}
             style={{
               flex: 1.2,
               padding: "13px 0",
@@ -462,7 +488,7 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
               justifyContent: "center",
             }}
           >
-            {isCommission ? "My Team" : isWithdrawal ? "New Withdrawal" : "New Deposit"}
+            {isBot ? "My Bots" : isCommission ? "My Team" : isWithdrawal ? "New Withdrawal" : "New Deposit"}
           </Link>
         </div>
       </div>
@@ -471,13 +497,14 @@ function TxModal({ item, onClose }: { item: HistoryItem; onClose: () => void }) 
 }
 
 // ─── Filter Bar ────────────────────────────────────────────────────────────────
-type Filter = "all" | "deposit" | "withdraw" | "commission" | "completed" | "pending";
+type Filter = "all" | "deposit" | "withdraw" | "bot" | "commission" | "completed" | "pending";
 
 function FilterBar({ active, onChange }: { active: Filter; onChange: (f: Filter) => void }) {
   const tabs: { key: Filter; label: string }[] = [
     { key: "all", label: "All" },
     { key: "deposit", label: "Deposits" },
     { key: "withdraw", label: "Withdrawals" },
+    { key: "bot", label: "Bots" },
     { key: "commission", label: "Commissions" },
     { key: "completed", label: "Completed" },
     { key: "pending", label: "Pending" },
@@ -533,7 +560,7 @@ export default function PaymentHistory() {
       if (pLoaded && wLoaded) setLoading(false);
     };
 
-    // 1. Listen to Deposits & Commissions & Adjustments
+    // 1. Listen to Deposits & Commissions & Adjustments & Bot Rewards
     const pRef = ref(db, `userPayments/${user.uid}`);
     const unsubP = onValue(pRef, (snap) => {
       const data = snap.val() as Record<string, any> | null;
@@ -543,7 +570,8 @@ export default function PaymentHistory() {
             val.type === "referral_commission" ||
             String(val.description || "").toLowerCase().includes("commission");
           const isAdj = val.type === "admin_adjustment";
-          const category: TxCategory = isComm ? "commission" : isAdj ? "adjustment" : "deposit";
+          const isBotReward = val.type === "bot_reward";
+          const category: TxCategory = isBotReward ? "bot" : isComm ? "commission" : isAdj ? "adjustment" : "deposit";
 
           return {
             id,
@@ -574,14 +602,15 @@ export default function PaymentHistory() {
       checkDone();
     });
 
-    // 2. Listen to Withdrawals
+    // 2. Listen to Withdrawals & Bot Activations
     const wRef = ref(db, `withdrawRequests/${user.uid}`);
     const unsubW = onValue(wRef, (snap) => {
       const data = snap.val() as Record<string, any> | null;
       if (data) {
         const list: HistoryItem[] = Object.entries(data).map(([id, val]) => {
           const isAdj = val.type === "admin_deduction";
-          const category: TxCategory = isAdj ? "adjustment" : "withdraw";
+          const isBotAct = val.type === "bot_activation";
+          const category: TxCategory = isBotAct ? "bot" : isAdj ? "adjustment" : "withdraw";
 
           return {
             id,
@@ -598,6 +627,7 @@ export default function PaymentHistory() {
             description: val.description || val.adminNote,
             adminNote: val.adminNote,
             reference: id,
+            botName: val.botName,
           };
         });
         setWithdrawals(list);
@@ -626,6 +656,7 @@ export default function PaymentHistory() {
     if (filter === "all") return list;
     if (filter === "deposit") return list.filter(p => p.category === "deposit");
     if (filter === "withdraw") return list.filter(p => p.category === "withdraw");
+    if (filter === "bot") return list.filter(p => p.category === "bot");
     if (filter === "commission") return list.filter(p => p.category === "commission");
     if (filter === "completed") {
       return list.filter(p => ["completed", "success", "paid"].includes(String(p.status).toLowerCase()));
