@@ -5,12 +5,10 @@ export type Purchase = {
   orderId?: string;
   reference?: string;
   botId?: string;
-  movieGroupId?: string;
 };
 
 export type UserPayment = {
   botId?: string;
-  betslipId?: string;
   amount: number;
   currency: string;
   status: string;
@@ -40,24 +38,4 @@ export type AppNotification = {
   type?: "deposit_approved" | "deposit_rejected" | "commission" | "withdrawal_approved" | "withdrawal_rejected" | "broadcast" | string;
   read?: boolean;
   meta?: Record<string, string | number | boolean | null>;
-};
-
-export type MovieGroup = {
-  id?: string;
-  name: string;
-  thumbnail: string;
-  amount: number;
-  currency: string;
-  description: string;
-  createdAt: number;
-};
-
-export type Movie = {
-  id?: string;
-  groupId: string;
-  title: string;
-  youtubeId?: string;
-  videoUrl?: string;
-  duration?: string;
-  createdAt: number;
 };

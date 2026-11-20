@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 import { Navigate, Route, Routes, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Home from "@/pages/Home";
-import MovieGroupDetail from "@/pages/MovieGroupDetail";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Register from "@/pages/Register";
@@ -17,7 +16,6 @@ import Account from "@/pages/Account";
 import Bots from "@/pages/Bots";
 import MyBots from "@/pages/MyBots";
 import Notifications from "@/pages/Notifications";
-import Movies from "@/pages/Movies";
 import Affiliate from "@/pages/Affiliate";
 
 /** Spinner shown while Firebase Auth determines the current session */
@@ -124,21 +122,16 @@ export default function App() {
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/affiliate" element={<Affiliate />} />
-        <Route path="/live" element={<Navigate to="/my-bots" replace />} />
-        <Route path="/slip/:id" element={<Navigate to="/my-bots" replace />} />
         <Route path="/payments" element={<PaymentHistory />} />
         <Route path="/deposit" element={<Deposit />} />
         <Route path="/withdraw" element={<Withdraw />} />
         <Route path="/support" element={<Support />} />
         <Route path="/account" element={<Account />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/chat" element={<Navigate to="/my-bots" replace />} />
         <Route path="/bots" element={<Bots />} />
         <Route path="/my-bots" element={<MyBots />} />
         <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/payment/cancel" element={<PaymentCancel />} />
-        <Route path="/movies" element={<Movies />} />
-        <Route path="/movies/:groupId" element={<MovieGroupDetail />} />
         <Route
           path="/admin"
           element={

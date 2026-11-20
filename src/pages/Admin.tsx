@@ -5,7 +5,6 @@ import { db } from "@/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { BOTS, getBotById } from "@/lib/bots";
 import { AdminNotifications } from "./AdminNotifications";
-import { AdminMovies } from "./AdminMovies";
 import { AdminSettings } from "./AdminSettings";
 
 /* ── Types ─────────────────────────────────────────── */
@@ -16,7 +15,6 @@ type AdminTab =
   | "payments"
   | "users"
   | "notifications"
-  | "movies"
   | "settings";
 
 interface UserBotItem {
@@ -132,7 +130,7 @@ export default function Admin() {
     const tabParam = params.get("tab");
     const validTabs: AdminTab[] = [
       "overview", "bots", "withdrawals", "payments",
-      "users", "notifications", "movies", "settings",
+      "users", "notifications", "settings",
     ];
     if (tabParam && validTabs.includes(tabParam as AdminTab)) {
       setTab(tabParam as AdminTab);
@@ -973,7 +971,6 @@ export default function Admin() {
     { key: "payments", label: "Payments & Deposits", icon: "💳", badge: pendingPayments.length },
     { key: "users", label: "Users Directory", icon: "👥", badge: usersList.length },
     { key: "notifications", label: "Alerts & Broadcast", icon: "🔔" },
-    { key: "movies", label: "Movies & Media", icon: "🎬" },
     { key: "settings", label: "Settings", icon: "⚙️" },
   ];
 
@@ -1271,8 +1268,6 @@ export default function Admin() {
                   ? "Users Directory"
                   : tab === "notifications"
                   ? "Broadcast Alerts"
-                  : tab === "movies"
-                  ? "Movies & Media"
                   : "Platform Settings"}
               </div>
             </div>
@@ -2665,12 +2660,7 @@ export default function Admin() {
               {tab === "notifications" && <AdminNotifications />}
 
               {/* ──────────────────────────────────────────────────────────
-                  TAB 7: MOVIES & MEDIA
-              ────────────────────────────────────────────────────────── */}
-              {tab === "movies" && <AdminMovies />}
-
-              {/* ──────────────────────────────────────────────────────────
-                  TAB 8: PLATFORM SETTINGS
+                  TAB 7: PLATFORM SETTINGS
               ────────────────────────────────────────────────────────── */}
               {tab === "settings" && <AdminSettings />}
             </>
