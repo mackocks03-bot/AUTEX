@@ -961,12 +961,20 @@ export default function Admin() {
         .reduce((sum, p) => sum + p.amount, 0),
     [payments]
   );
+  // Real user deposits only — exclude internal commissions, bot yields, and admin adjustments
+  const EXCLUDED_DEPOSIT_TYPES = ["referral_commission", "bot_reward", "admin_adjustment", "commission"];
+
+  const depositPayments = useMemo(
+    () => payments.filter((p) => !EXCLUDED_DEPOSIT_TYPES.includes(p.type || "")),
+    [payments]
+  );
+
   const totalDepositedVolume = useMemo(
     () =>
-      payments
-        .filter((p) => p.type !== "bot_reward" && (p.status === "completed" || p.status === "paid"))
+      depositPayments
+        .filter((p) => p.status === "completed" || p.status === "paid")
         .reduce((sum, p) => sum + p.amount, 0),
-    [payments]
+    [depositPayments]
   );
 
   // Filtered lists
@@ -999,12 +1007,12 @@ export default function Admin() {
   }, [withdrawals, withdrawStatus, withdrawSearch]);
 
   const pendingPayments = useMemo(
-    () => payments.filter((p) => (p.status === "pending" || !p.status) && p.type !== "bot_reward"),
-    [payments]
+    () => depositPayments.filter((p) => p.status === "pending" || !p.status),
+    [depositPayments]
   );
 
   const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
+    return depositPayments.filter((p) => {
       const matchStatus =
         paymentStatusFilter === "all" ||
         (paymentStatusFilter === "pending" && (p.status === "pending" || !p.status)) ||
@@ -1015,14 +1023,14 @@ export default function Admin() {
         p.uid.toLowerCase().includes(q) ||
         (p.phone && p.phone.toLowerCase().includes(q)) ||
         (p.senderName && p.senderName.toLowerCase().includes(q)) ||
+        (p.txHash && p.txHash.toLowerCase().includes(q)) ||
         (p.networkName && p.networkName.toLowerCase().includes(q)) ||
         (p.accountNo && p.accountNo.toLowerCase().includes(q)) ||
         (p.type && p.type.toLowerCase().includes(q)) ||
-        (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.botName && p.botName.toLowerCase().includes(q));
+        (p.description && p.description.toLowerCase().includes(q));
       return matchStatus && matchSearch;
     });
-  }, [payments, paymentStatusFilter, paymentSearch]);
+  }, [depositPayments, paymentStatusFilter, paymentSearch]);
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return usersList;
@@ -1041,7 +1049,7 @@ export default function Admin() {
     { key: "overview", label: "Overview", icon: "📊" },
     { key: "bots", label: "Fleet Monitor", icon: "🤖", badge: userBots.length },
     { key: "withdrawals", label: "Withdrawals", icon: "💸", badge: pendingWithdrawals.length },
-    { key: "payments", label: "Payments & Deposits", icon: "💳", badge: pendingPayments.length },
+    { key: "payments", label: "Deposits", icon: "💳", badge: pendingPayments.length },
     { key: "payment-methods", label: "Deposit Accounts", icon: "🏦" },
     { key: "users", label: "Users Directory", icon: "👥", badge: usersList.length },
     { key: "notifications", label: "Alerts & Broadcast", icon: "🔔" },
@@ -2170,10 +2178,10 @@ export default function Admin() {
                   {/* Status Filter Tabs */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                     {[
-                      { key: "all", label: `All (${payments.length})` },
+                      { key: "all", label: `All Deposits (${depositPayments.length})` },
                       { key: "pending", label: `Pending Review (${pendingPayments.length})`, alert: pendingPayments.length > 0 },
-                      { key: "completed", label: `Completed (${payments.filter((p) => p.status === "completed").length})` },
-                      { key: "rejected", label: `Rejected (${payments.filter((p) => p.status === "rejected").length})` },
+                      { key: "completed", label: `Completed (${depositPayments.filter((p) => p.status === "completed").length})` },
+                      { key: "rejected", label: `Rejected (${depositPayments.filter((p) => p.status === "rejected").length})` },
                     ].map((f) => (
                       <button
                         key={f.key}
