@@ -880,7 +880,7 @@ export default function Admin() {
 
   /* ── Calculations & Metrics ────────────────────────── */
   const pendingWithdrawals = useMemo(
-    () => withdrawals.filter((w) => w.status === "pending"),
+    () => withdrawals.filter((w) => w.status === "pending" && (!w.type || w.type === "withdraw" || w.type === "withdrawal")),
     [withdrawals]
   );
   const pendingWithdrawalsSum = useMemo(
@@ -924,13 +924,17 @@ export default function Admin() {
   }, [userBots, botSearch]);
 
   const filteredWithdrawals = useMemo(() => {
+    // Only show real withdrawal requests — exclude bot activations, admin deductions, etc.
+    const WITHDRAWAL_TYPES = [undefined, null, "", "withdraw", "withdrawal"];
     return withdrawals.filter((w) => {
+      const isRealWithdrawal = WITHDRAWAL_TYPES.includes(w.type as any) || !w.type;
+      if (!isRealWithdrawal) return false;
       const matchStatus = withdrawStatus === "all" || w.status === withdrawStatus;
       const q = withdrawSearch.toLowerCase();
       const matchSearch =
         !q ||
         w.uid.toLowerCase().includes(q) ||
-        w.destination.toLowerCase().includes(q) ||
+        (w.destination && w.destination.toLowerCase().includes(q)) ||
         (w.accountName && w.accountName.toLowerCase().includes(q)) ||
         (w.networkName && w.networkName.toLowerCase().includes(q));
       return matchStatus && matchSearch;
