@@ -646,7 +646,6 @@ export default function Deposit() {
   const [done, setDone]         = useState(false);
   // dirty flags for inline validation
   const [phoneDirty, setPhoneDirty]   = useState(false);
-  const [addrDirty, setAddrDirty]     = useState(false);
 
   // Live Payment Methods from Firebase Database
   const [mobileNetworks, setMobileNetworks] = useState<Network[]>(DEFAULT_ZW_NETWORKS);
@@ -702,18 +701,15 @@ export default function Deposit() {
 
   // Computed validation state
   const phoneVal = tab === "mobile" ? validateZwPhone(phone) : { ok: true, msg: "" };
-  const addrVal  = tab === "crypto" && selectedNet
-    ? validateCryptoAddr(phone, selectedNet.id)   // "phone" state reused as address in crypto tab
-    : { ok: true, msg: "" };
 
   function switchTab(t: TabKey) {
     setTab(t); setNet(null); setAmount(""); setPhone(""); setFormError("");
-    setPhoneDirty(false); setAddrDirty(false);
+    setPhoneDirty(false);
     setSheet1(false); setSheet2(false); setSheet3(false); setDone(false);
   }
   function reset() {
     setNet(null); setAmount(""); setPhone(""); setFormError("");
-    setPhoneDirty(false); setAddrDirty(false);
+    setPhoneDirty(false);
     setSheet1(false); setSheet2(false); setSheet3(false); setDone(false);
   }
 
@@ -731,12 +727,7 @@ export default function Deposit() {
       const v = validateZwPhone(phone);
       if (!v.ok) { setFormError(v.msg || "Please enter a valid Zimbabwe phone number."); return; }
     }
-    if (tab === "crypto") {
-      setAddrDirty(true);
-      if (!phone.trim()) { setFormError("Please enter your wallet address."); return; }
-      const v = validateCryptoAddr(phone, selectedNet.id);
-      if (!v.ok) { setFormError(v.msg || "Please enter a valid wallet address."); return; }
-    }
+    // Crypto only requires amount — no wallet address input needed
     setSheet2(true);
   }
 
@@ -864,34 +855,6 @@ export default function Deposit() {
               />
             </div>
             <FieldStatus ok={phoneVal.ok} msg={phoneVal.msg} dirty={phoneDirty} />
-          </div>
-        )}
-
-        {/* Crypto wallet address — crypto only */}
-        {tab === "crypto" && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 7 }}>
-              Your Wallet Address
-            </div>
-            <input type="text" value={phone}
-              onChange={e => { setPhone(e.target.value); setAddrDirty(true); }}
-              placeholder={
-                selectedNet?.id === "usdt-trc20" ? "T... (34 chars, TRC20)" :
-                selectedNet?.id === "usdt-erc20" ? "0x... (42 chars, ERC20)" :
-                selectedNet?.id === "bnb-bsc"    ? "0x... (42 chars, BEP20)" :
-                selectedNet?.id === "btc"        ? "1... / 3... / bc1..." :
-                "Paste your wallet address"
-              }
-              style={{
-                width: "100%", padding: "12px 12px", borderRadius: 10, boxSizing: "border-box",
-                border: `1.5px solid ${addrDirty ? (addrVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`,
-                background: "var(--bg2)", fontSize: 16, fontWeight: 600, fontFamily: "monospace",
-                color: "var(--text)", outline: "none", transition: "border-color 0.2s",
-              }}
-              onFocus={e => (e.target.style.borderColor = addrDirty ? (addrVal.ok ? "#0ecb81" : "#f6465d") : "var(--accent)")}
-              onBlur={e => { setAddrDirty(true); e.target.style.borderColor = addrVal.ok ? "#0ecb81" : (phone ? "#f6465d" : "var(--stroke)"); }}
-            />
-            <FieldStatus ok={addrVal.ok} msg={addrVal.msg} dirty={addrDirty} />
           </div>
         )}
 
