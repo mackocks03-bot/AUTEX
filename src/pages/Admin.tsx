@@ -45,6 +45,7 @@ interface WithdrawItem {
   accountName?: string;
   type?: string;
   fee?: number;
+  feeRate?: string;
   status: "pending" | "completed" | "rejected";
   createdAt: number;
   processedAt?: number;
@@ -368,17 +369,35 @@ export default function Admin() {
         Object.entries(val).forEach(([uid, reqsMap]) => {
           if (reqsMap && typeof reqsMap === "object") {
             Object.entries(reqsMap).forEach(([key, r]) => {
+              const amt = Number(r.amount || 0);
+              let feeDollar = 0;
+              let feeRate = typeof r.fee === "string" ? r.fee : (r.feeRate || "8%");
+
+              if (r.feeAmount != null && !isNaN(Number(r.feeAmount))) {
+                feeDollar = Number(r.feeAmount);
+              } else if (typeof r.fee === "string" && r.fee.includes("%")) {
+                const pct = parseFloat(r.fee);
+                if (!isNaN(pct)) feeDollar = (amt * pct) / 100;
+              } else if (r.fee != null && !isNaN(Number(r.fee))) {
+                const num = Number(r.fee);
+                feeDollar = num <= 1 && num > 0 ? amt * num : num;
+              } else {
+                // Platform withdrawal fee across all networks is 8%
+                feeDollar = (amt * 8) / 100;
+              }
+
               list.push({
                 key,
                 uid,
                 network: r.network,
                 networkName: r.networkName,
-                amount: Number(r.amount || 0),
+                amount: amt,
                 currency: r.currency || "USD",
                 destination: r.destination || "",
                 accountName: r.accountName || "",
                 type: r.type,
-                fee: r.fee != null && !isNaN(Number(r.fee)) ? Number(r.fee) : undefined,
+                fee: Math.round(feeDollar * 100) / 100,
+                feeRate,
                 status: (r.status || "pending") as any,
                 createdAt: Number(r.createdAt || 0),
                 processedAt: r.processedAt,
@@ -1994,7 +2013,7 @@ export default function Admin() {
                                 <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
                                   Requested: <strong style={{ color: "var(--text)" }}>${fmt(w.amount)}</strong>
                                   {feeVal > 0 ? (
-                                    <> · Fee/Tax: <span style={{ color: "#ef4444", fontWeight: 700 }}>-${fmt(feeVal)}</span></>
+                                    <> · Fee/Tax ({w.feeRate || "8%"}): <span style={{ color: "#ef4444", fontWeight: 700 }}>-${fmt(feeVal)}</span></>
                                   ) : (
                                     <> · <span style={{ color: "#00a651", fontWeight: 600 }}>No Fee</span></>
                                   )}

@@ -607,15 +607,21 @@ function ConfirmSheet({
     }
     setSubmitting(true);
     try {
+      const amt = parseFloat(amount) || 0;
+      const feePct = net.fee.includes("%") ? parseFloat(net.fee) : 8;
+      const feeAmt = !isNaN(feePct) ? (amt * feePct) / 100 : 0;
       await push(dbRef(db, `withdrawRequests/${user.uid}`), {
         network: net.id,
         networkName: net.name,
-        amount: parseFloat(amount),
+        amount: amt,
         currency: net.currency,
         destination: destination.trim(),
         accountName: accountName.trim(),
         type: tabKey,
         fee: net.fee,
+        feeRate: net.fee,
+        feeAmount: Math.round(feeAmt * 100) / 100,
+        netAmount: Math.max(0, Math.round((amt - feeAmt) * 100) / 100),
         status: "pending",
         createdAt: Date.now(),
       });
