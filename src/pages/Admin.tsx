@@ -880,7 +880,10 @@ export default function Admin() {
 
   /* ── Calculations & Metrics ────────────────────────── */
   const pendingWithdrawals = useMemo(
-    () => withdrawals.filter((w) => w.status === "pending" && (!w.type || w.type === "withdraw" || w.type === "withdrawal")),
+    () => withdrawals.filter((w) => {
+      const EXCLUDED_TYPES = ["bot_activation", "admin_deduction", "bot_reward", "referral_commission"];
+      return w.status === "pending" && !(w.type && EXCLUDED_TYPES.includes(w.type));
+    }),
     [withdrawals]
   );
   const pendingWithdrawalsSum = useMemo(
@@ -924,11 +927,10 @@ export default function Admin() {
   }, [userBots, botSearch]);
 
   const filteredWithdrawals = useMemo(() => {
-    // Only show real withdrawal requests — exclude bot activations, admin deductions, etc.
-    const WITHDRAWAL_TYPES = [undefined, null, "", "withdraw", "withdrawal"];
+    // Exclude internal system transaction types — only show real user withdrawal requests
+    const EXCLUDED_TYPES = ["bot_activation", "admin_deduction", "bot_reward", "referral_commission"];
     return withdrawals.filter((w) => {
-      const isRealWithdrawal = WITHDRAWAL_TYPES.includes(w.type as any) || !w.type;
-      if (!isRealWithdrawal) return false;
+      if (w.type && EXCLUDED_TYPES.includes(w.type)) return false;
       const matchStatus = withdrawStatus === "all" || w.status === withdrawStatus;
       const q = withdrawSearch.toLowerCase();
       const matchSearch =
