@@ -49,6 +49,9 @@ interface WithdrawItem {
   createdAt: number;
   processedAt?: number;
   adminNote?: string;
+  // joined from users list
+  userPhone?: string;
+  userName?: string;
 }
 
 interface PaymentItem {
@@ -1792,127 +1795,186 @@ export default function Admin() {
                     />
                   </div>
 
-                  {/* Withdrawals List / Table */}
-                  <div className="neu-card" style={{ borderRadius: 18, overflow: "hidden" }}>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-                        <thead>
-                          <tr style={{ background: "var(--bg2)", borderBottom: "1px solid var(--stroke)" }}>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Date</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>User UID</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Method</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Destination Details</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Amount</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800 }}>Status</th>
-                            <th style={{ padding: "12px 14px", fontWeight: 800, textAlign: "right" }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredWithdrawals.map((w) => {
-                            const isProcessing = processingKey === w.key;
-                            return (
-                              <tr key={w.key} style={{ borderBottom: "1px solid var(--stroke)" }}>
-                                <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12 }}>
-                                  {fmtDate(w.createdAt)}
-                                </td>
-                                <td style={{ padding: "12px 14px", fontFamily: "monospace", fontSize: 12 }}>
-                                  {w.uid.slice(0, 10)}…
-                                </td>
-                                <td style={{ padding: "12px 14px", fontWeight: 700 }}>
-                                  {w.networkName || (w.type === "bot_activation" ? "🤖 Bot Activation" : w.type === "admin_deduction" ? "⚖️ Admin Deduction" : "Withdraw")}
-                                </td>
-                                <td style={{ padding: "12px 14px" }}>
-                                  <div style={{ fontWeight: 800 }}>{w.destination}</div>
-                                  {w.accountName && (
-                                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>Holder: {w.accountName}</div>
-                                  )}
-                                  {w.adminNote && (
-                                    <div style={{ fontSize: 11, color: "#d97706", marginTop: 2 }}>Note: {w.adminNote}</div>
-                                  )}
-                                </td>
-                                <td style={{ padding: "12px 14px" }}>
-                                  <div style={{ fontWeight: 900, fontSize: 15, color: "var(--text)" }}>${fmt(w.amount)}</div>
-                                  {w.fee ? (
-                                    <div style={{ fontSize: 11, color: "var(--muted)" }}>Fee: ${fmt(w.fee)}</div>
-                                  ) : null}
-                                </td>
-                                <td style={{ padding: "12px 14px" }}>
-                                  <span
-                                    style={{
-                                      padding: "4px 9px",
-                                      borderRadius: 999,
-                                      fontSize: 11,
-                                      fontWeight: 800,
-                                      background:
-                                        w.status === "completed"
-                                          ? "rgba(0,166,81,0.12)"
-                                          : w.status === "rejected"
-                                          ? "rgba(239,68,68,0.12)"
-                                          : "rgba(245,158,11,0.12)",
-                                      color:
-                                        w.status === "completed"
-                                          ? "#00a651"
-                                          : w.status === "rejected"
-                                          ? "#ef4444"
-                                          : "#d97706",
-                                    }}
-                                  >
-                                    {w.status.toUpperCase()}
-                                  </span>
-                                </td>
-                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                                  {w.status === "pending" ? (
-                                    <div style={{ display: "inline-flex", gap: 6 }}>
-                                      <button
-                                        onClick={() => handleApproveWithdrawal(w)}
-                                        disabled={isProcessing}
-                                        style={{
-                                          padding: "6px 12px",
-                                          borderRadius: 8,
-                                          background: "#00a651",
-                                          color: "#fff",
-                                          fontSize: 12,
-                                          fontWeight: 800,
-                                          border: "none",
-                                          cursor: "pointer",
-                                        }}
-                                      >
-                                        Approve
-                                      </button>
-                                      <button
-                                        onClick={() => handleRejectWithdrawal(w)}
-                                        disabled={isProcessing}
-                                        style={{
-                                          padding: "6px 12px",
-                                          borderRadius: 8,
-                                          background: "rgba(239,68,68,0.12)",
-                                          color: "#ef4444",
-                                          border: "1px solid rgba(239,68,68,0.3)",
-                                          fontSize: 12,
-                                          fontWeight: 800,
-                                          cursor: "pointer",
-                                        }}
-                                      >
-                                        Reject
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span style={{ fontSize: 12, color: "var(--muted)" }}>Processed</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          {filteredWithdrawals.length === 0 && (
-                            <tr>
-                              <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>
-                                No withdrawal requests in this category.
-                              </td>
-                            </tr>
+                  {/* Withdrawals List — Mobile-friendly cards */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {filteredWithdrawals.length === 0 && (
+                      <div className="neu-card" style={{ padding: 28, textAlign: "center", color: "var(--muted)", borderRadius: 16 }}>
+                        No withdrawal requests in this category.
+                      </div>
+                    )}
+                    {filteredWithdrawals.map((w) => {
+                      const isProcessing = processingKey === w.key;
+                      const userInfo = usersList.find((u) => u.uid === w.uid);
+                      const userPhone = userInfo?.phone || w.destination || "—";
+                      const userName = userInfo?.displayName || userInfo?.phone || "—";
+                      const copyText = `Phone: ${userPhone}\nName: ${userName}\nAmount: $${fmt(w.amount)}`;
+                      const methodLabel =
+                        w.networkName ||
+                        (w.type === "bot_activation"
+                          ? "🤖 Bot Activation"
+                          : w.type === "admin_deduction"
+                          ? "⚖️ Admin Deduction"
+                          : "Withdraw");
+                      const statusColor =
+                        w.status === "completed" ? "#00a651" : w.status === "rejected" ? "#ef4444" : "#d97706";
+                      const statusBg =
+                        w.status === "completed"
+                          ? "rgba(0,166,81,0.12)"
+                          : w.status === "rejected"
+                          ? "rgba(239,68,68,0.12)"
+                          : "rgba(245,158,11,0.12)";
+                      return (
+                        <div
+                          key={w.key}
+                          className="neu-card"
+                          style={{ borderRadius: 16, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}
+                        >
+                          {/* Top row: method + status + date */}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                            <span style={{ fontWeight: 800, fontSize: 13 }}>{methodLabel}</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span
+                                style={{
+                                  padding: "3px 10px",
+                                  borderRadius: 999,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  background: statusBg,
+                                  color: statusColor,
+                                }}
+                              >
+                                {w.status.toUpperCase()}
+                              </span>
+                              <span style={{ fontSize: 11, color: "var(--muted)" }}>{fmtDate(w.createdAt)}</span>
+                            </div>
+                          </div>
+
+                          {/* Copy rows: Phone / Name / Amount */}
+                          {[
+                            { label: "📞 Phone", value: userPhone },
+                            { label: "👤 Name", value: userName },
+                            { label: "💵 Amount", value: `$${fmt(w.amount)}${w.fee ? ` (Fee: $${fmt(w.fee)})` : ""}` },
+                          ].map(({ label, value }) => (
+                            <div
+                              key={label}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                background: "var(--bg2)",
+                                borderRadius: 10,
+                                padding: "8px 12px",
+                                gap: 8,
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>{label}</div>
+                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>{value}</div>
+                              </div>
+                              <button
+                                title={`Copy ${label}`}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(value);
+                                  showMsg(`${label} copied! 📋`);
+                                }}
+                                style={{
+                                  flexShrink: 0,
+                                  padding: "5px 10px",
+                                  borderRadius: 8,
+                                  border: "1px solid var(--stroke)",
+                                  background: "var(--bg1)",
+                                  color: "var(--text)",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                📋 Copy
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Copy All button */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(copyText);
+                              showMsg("All details copied! 📋");
+                            }}
+                            style={{
+                              width: "100%",
+                              padding: "8px 0",
+                              borderRadius: 10,
+                              border: "1px dashed var(--stroke)",
+                              background: "transparent",
+                              color: "var(--muted)",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            📋 Copy All (Phone · Name · Amount)
+                          </button>
+
+                          {/* Destination / Account details */}
+                          {(w.destination || w.accountName) && (
+                            <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                              {w.destination && <div>→ Destination: <strong style={{ color: "var(--text)" }}>{w.destination}</strong></div>}
+                              {w.accountName && <div>→ Holder: <strong style={{ color: "var(--text)" }}>{w.accountName}</strong></div>}
+                              {w.adminNote && <div style={{ color: "#d97706" }}>⚠️ Note: {w.adminNote}</div>}
+                            </div>
                           )}
-                        </tbody>
-                      </table>
-                    </div>
+
+                          {/* Action buttons */}
+                          <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                            {w.status === "pending" ? (
+                              <>
+                                <button
+                                  onClick={() => handleApproveWithdrawal(w)}
+                                  disabled={isProcessing}
+                                  style={{
+                                    flex: 1,
+                                    padding: "9px 0",
+                                    borderRadius: 10,
+                                    background: "#00a651",
+                                    color: "#fff",
+                                    fontSize: 13,
+                                    fontWeight: 800,
+                                    border: "none",
+                                    cursor: "pointer",
+                                    opacity: isProcessing ? 0.6 : 1,
+                                  }}
+                                >
+                                  ✅ Approve
+                                </button>
+                                <button
+                                  onClick={() => handleRejectWithdrawal(w)}
+                                  disabled={isProcessing}
+                                  style={{
+                                    flex: 1,
+                                    padding: "9px 0",
+                                    borderRadius: 10,
+                                    background: "rgba(239,68,68,0.10)",
+                                    color: "#ef4444",
+                                    border: "1px solid rgba(239,68,68,0.3)",
+                                    fontSize: 13,
+                                    fontWeight: 800,
+                                    cursor: "pointer",
+                                    opacity: isProcessing ? 0.6 : 1,
+                                  }}
+                                >
+                                  ❌ Reject
+                                </button>
+                              </>
+                            ) : (
+                              <div style={{ fontSize: 12, color: "var(--muted)", padding: "6px 0" }}>
+                                Processed {w.processedAt ? `· ${fmtDate(w.processedAt)}` : ""}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
