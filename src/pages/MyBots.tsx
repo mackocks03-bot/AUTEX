@@ -4,7 +4,7 @@ import { Shell } from "@/components/Shell";
 import { useAuth } from "@/context/AuthContext";
 import { ref, onValue, push, set, update, get } from "firebase/database";
 import { db } from "@/firebase";
-import { getBotById } from "@/lib/bots";
+import { BOTS, getBotById } from "@/lib/bots";
 
 /* ─── Styles & Keyframe Animations ───────────────────── */
 const css = `
@@ -312,7 +312,7 @@ export default function MyBots() {
               transition: "all 0.15s ease",
             }}
           >
-            Explore Bots (13)
+            Explore Bots ({BOTS.length})
           </Link>
           <div
             style={{

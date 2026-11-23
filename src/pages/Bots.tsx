@@ -652,7 +652,7 @@ export default function Bots() {
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#0ecb81", display: "inline-block", boxShadow: "0 0 8px #0ecb81" }} />
             <span style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              Algorithmic Engine · 13 Bots Active
+              Algorithmic Engine · {BOTS.length} Bots Active
             </span>
           </div>
           <div style={{ fontSize: 24, fontWeight: 900, color: "var(--text)", letterSpacing: "-0.02em" }}>
@@ -677,7 +677,7 @@ export default function Bots() {
               boxShadow: "-3px -3px 8px rgba(255,255,255,0.95), 3px 3px 8px rgba(163,177,198,0.45)",
             }}
           >
-            Explore Bots (13)
+            Explore Bots ({BOTS.length})
           </div>
           <Link
             to="/my-bots"
