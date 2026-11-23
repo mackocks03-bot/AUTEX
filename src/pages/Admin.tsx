@@ -504,11 +504,13 @@ export default function Admin() {
 
   /* ── Actions: Withdrawals Approval / Rejection ───────── */
   function handleApproveWithdrawal(w: WithdrawItem) {
+    const feeVal = w.fee != null && !isNaN(Number(w.fee)) ? Number(w.fee) : 0;
+    const netAmt = Math.max(0, w.amount - feeVal);
     setPopupDialog({
       isOpen: true,
       type: "confirm",
       title: "Approve Withdrawal Payout",
-      message: `Approve payout of $${fmt(w.amount)} to ${w.destination} (${w.accountName || "User"})?\n\nThis will mark the withdrawal as completed.`,
+      message: `Approve payout of $${fmt(netAmt)} (Requested: $${fmt(w.amount)}${feeVal > 0 ? `, Fee: $${fmt(feeVal)}` : ""}) to ${w.destination} (${w.accountName || "User"})?\n\nThis will mark the withdrawal as completed.`,
       confirmLabel: "Approve Payout",
       confirmColor: "#00a651",
       cancelLabel: "Cancel",
@@ -557,11 +559,11 @@ export default function Admin() {
       isOpen: true,
       type: "prompt",
       title: "Reject Withdrawal Request",
-      message: `Enter reason for rejecting withdrawal of $${fmt(w.amount)}:`,
+      message: `Enter reason for rejecting withdrawal of $${fmt(w.amount)}:\n(The amount of $${fmt(w.amount)} will be refunded to user's balance)`,
       defaultValue: "Verification issue / invalid destination details",
       inputValue: "Verification issue / invalid destination details",
       inputPlaceholder: "Enter rejection reason…",
-      confirmLabel: "Reject Withdrawal",
+      confirmLabel: "Reject & Refund",
       confirmColor: "#ef4444",
       cancelLabel: "Cancel",
       onConfirm: async (reason) => {
@@ -573,14 +575,37 @@ export default function Admin() {
             processedAt: Date.now(),
             adminNote: (reason || "").trim() || "Rejected by administrator",
           });
+
+          // Refund amount to user balance in database:
+          // User balance is total completed payments minus non-rejected withdrawals.
+          // Since this withdrawal key is now rejected, exclude it from total withdrawals.
+          const userPays = payments.filter(
+            (p) => p.uid === w.uid && ["completed", "success", "paid"].includes(String(p.status || "").toLowerCase())
+          );
+          const totalIn = userPays.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+          const userWiths = withdrawals.filter(
+            (wi) =>
+              wi.uid === w.uid &&
+              wi.key !== w.key &&
+              !["failed", "rejected", "cancelled"].includes(String(wi.status || "").toLowerCase())
+          );
+          const totalOut = userWiths.reduce((sum, wi) => sum + (Number(wi.amount) || 0), 0);
+          const refundedBal = Math.max(0, totalIn - totalOut);
+
+          await update(ref(db, `users/${w.uid}`), {
+            balance: refundedBal,
+            updatedAt: Date.now(),
+          }).catch(() => {});
+
           // Notify user
           await sendUserNotification(
             w.uid,
-            "🚫 Withdrawal Rejected",
-            `Your withdrawal request of $${fmt(w.amount)} ${w.currency || "USD"}${w.destination ? ` to ${w.destination}` : ""} has been rejected. Reason: ${(reason || "").trim() || "Verification issue or invalid destination details"}. Ref: ${w.key.slice(0, 16)}.`,
+            "🚫 Withdrawal Rejected & Refunded",
+            `Your withdrawal request of $${fmt(w.amount)} ${w.currency || "USD"}${w.destination ? ` to ${w.destination}` : ""} has been rejected, and $${fmt(w.amount)} has been refunded back to your account balance. Reason: ${(reason || "").trim() || "Verification issue or invalid destination details"}. Ref: ${w.key.slice(0, 16)}.`,
             "withdrawal_rejected",
             {
               amount: w.amount,
+              refundedAmount: w.amount,
               currency: w.currency || "USD",
               network: w.networkName || w.network || null,
               destination: w.destination || null,
@@ -590,7 +615,7 @@ export default function Admin() {
               rejectedAt: Date.now(),
             }
           );
-          showMsg(`Withdrawal for user ${w.uid.slice(0, 6)} rejected. ❌`, "err");
+          showMsg(`Withdrawal rejected. $${fmt(w.amount)} refunded to user balance! ❌`, "err");
         } catch (err: any) {
           showMsg(err?.message || "Failed to reject withdrawal.", "err");
         } finally {
@@ -1822,7 +1847,10 @@ export default function Admin() {
                       const userInfo = usersList.find((u) => u.uid === w.uid);
                       const userPhone = userInfo?.phone || w.destination || "—";
                       const userName = userInfo?.displayName || userInfo?.phone || "—";
-                      const copyText = `Phone: ${userPhone}\nName: ${userName}\nAmount: $${fmt(w.amount)}`;
+                      const feeVal = (w.fee != null && !isNaN(Number(w.fee))) ? Number(w.fee) : 0;
+                      const netAmount = Math.max(0, w.amount - feeVal);
+                      const netAmountStr = `$${fmt(netAmount)}`;
+                      const copyText = `Phone: ${userPhone}\nName: ${userName}\nAmount: ${netAmountStr}`;
                       const methodLabel =
                         w.networkName ||
                         (w.type === "bot_activation"
@@ -1865,13 +1893,9 @@ export default function Admin() {
                           </div>
 
                           {/* Copy rows: Phone / Name / Amount */}
-                          {[
-                            { label: "📞 Phone", value: userPhone },
-                            { label: "👤 Name", value: userName },
-                            { label: "💵 Amount", value: `$${fmt(w.amount)}${w.fee ? ` (Fee: $${fmt(w.fee)})` : ""}` },
-                          ].map(({ label, value }) => (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {/* Row 1: Phone */}
                             <div
-                              key={label}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -1883,14 +1907,14 @@ export default function Admin() {
                               }}
                             >
                               <div>
-                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>{label}</div>
-                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>{value}</div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>📞 Phone</div>
+                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>{userPhone}</div>
                               </div>
                               <button
-                                title={`Copy ${label}`}
+                                title="Copy Phone"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(value);
-                                  showMsg(`${label} copied! 📋`);
+                                  navigator.clipboard.writeText(userPhone);
+                                  showMsg("Phone copied! 📋");
                                 }}
                                 style={{
                                   flexShrink: 0,
@@ -1908,13 +1932,103 @@ export default function Admin() {
                                 📋 Copy
                               </button>
                             </div>
-                          ))}
+
+                            {/* Row 2: Name */}
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                background: "var(--bg2)",
+                                borderRadius: 10,
+                                padding: "8px 12px",
+                                gap: 8,
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>👤 Name</div>
+                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>{userName}</div>
+                              </div>
+                              <button
+                                title="Copy Name"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(userName);
+                                  showMsg("Name copied! 📋");
+                                }}
+                                style={{
+                                  flexShrink: 0,
+                                  padding: "5px 10px",
+                                  borderRadius: 8,
+                                  border: "1px solid var(--stroke)",
+                                  background: "var(--bg1)",
+                                  color: "var(--text)",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                📋 Copy
+                              </button>
+                            </div>
+
+                            {/* Row 3: Amount after tax/fee (user receives) + requested amount breakdown */}
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                background: "var(--bg2)",
+                                borderRadius: 10,
+                                padding: "9px 12px",
+                                gap: 8,
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>
+                                  💵 Amount to Send (Net after fee)
+                                </div>
+                                <div style={{ fontSize: 15, fontWeight: 900, color: "#00a651" }}>
+                                  {netAmountStr}
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                                  Requested: <strong style={{ color: "var(--text)" }}>${fmt(w.amount)}</strong>
+                                  {feeVal > 0 ? (
+                                    <> · Fee/Tax: <span style={{ color: "#ef4444", fontWeight: 700 }}>-${fmt(feeVal)}</span></>
+                                  ) : (
+                                    <> · <span style={{ color: "#00a651", fontWeight: 600 }}>No Fee</span></>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                title="Copy Net Amount"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(netAmountStr);
+                                  showMsg(`Net Amount (${netAmountStr}) copied! 📋`);
+                                }}
+                                style={{
+                                  flexShrink: 0,
+                                  padding: "5px 10px",
+                                  borderRadius: 8,
+                                  border: "1px solid var(--stroke)",
+                                  background: "var(--bg1)",
+                                  color: "var(--text)",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                📋 Copy
+                              </button>
+                            </div>
+                          </div>
 
                           {/* Copy All button */}
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(copyText);
-                              showMsg("All details copied! 📋");
+                              showMsg("All details copied (with Net Amount)! 📋");
                             }}
                             style={{
                               width: "100%",
@@ -1928,7 +2042,7 @@ export default function Admin() {
                               cursor: "pointer",
                             }}
                           >
-                            📋 Copy All (Phone · Name · Amount)
+                            📋 Copy All (Phone · Name · Net Amount)
                           </button>
 
                           {/* Destination / Account details */}
