@@ -378,7 +378,7 @@ export default function Admin() {
                 destination: r.destination || "",
                 accountName: r.accountName || "",
                 type: r.type,
-                fee: Number(r.fee || 0),
+                fee: r.fee != null && !isNaN(Number(r.fee)) ? Number(r.fee) : undefined,
                 status: (r.status || "pending") as any,
                 createdAt: Number(r.createdAt || 0),
                 processedAt: r.processedAt,
@@ -477,16 +477,25 @@ export default function Admin() {
     title: string,
     message: string,
     type: string,
-    meta?: Record<string, string | number | boolean | null>
+    meta?: Record<string, string | number | boolean | null | undefined>
   ) {
     try {
+      // Strip any NaN / undefined / null values from meta — Firebase rejects NaN
+      const cleanMeta: Record<string, string | number | boolean> = {};
+      if (meta) {
+        Object.entries(meta).forEach(([k, v]) => {
+          if (v !== null && v !== undefined && !(typeof v === "number" && isNaN(v))) {
+            cleanMeta[k] = v as string | number | boolean;
+          }
+        });
+      }
       await push(ref(db, `userNotifications/${uid}`), {
         title,
         message,
         type,
         createdAt: Date.now(),
         read: false,
-        ...(meta ? { meta } : {}),
+        ...(Object.keys(cleanMeta).length > 0 ? { meta: cleanMeta } : {}),
       });
     } catch (err) {
       console.warn("sendUserNotification error:", err);
