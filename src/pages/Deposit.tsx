@@ -847,8 +847,23 @@ export default function Deposit() {
               <ZwFlag size={12} />
               Your Phone Number
             </div>
-            <div style={{ display: "flex" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", background: "var(--bg2)", border: `1.5px solid ${phoneDirty ? (phoneVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`, borderRight: "none", borderRadius: "10px 0 0 10px", flexShrink: 0 }}>
+            <div style={{
+              display: "flex",
+              border: `1.5px solid ${phoneDirty ? (phoneVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`,
+              borderRadius: 10,
+              overflow: "hidden",
+              background: "var(--bg2)",
+              transition: "border-color 0.2s",
+            }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "0 12px",
+                background: "var(--bg2)",
+                borderRight: "1px solid var(--stroke)",
+                flexShrink: 0,
+              }}>
                 <ZwFlag size={14} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", whiteSpace: "nowrap" }}>+263</span>
               </div>
@@ -857,13 +872,11 @@ export default function Deposit() {
                 placeholder={selectedNet?.hint || "07X XXX XXXX"}
                 maxLength={10}
                 style={{
-                  flex: 1, padding: "12px 12px", borderRadius: "0 10px 10px 0",
-                  border: `1.5px solid ${phoneDirty ? (phoneVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`, borderLeft: "none",
-                  background: "var(--bg2)", fontSize: 16, fontWeight: 600,
-                  color: "var(--text)", outline: "none", transition: "border-color 0.2s",
+                  flex: 1, padding: "12px 12px", border: "none",
+                  background: "transparent", fontSize: 16, fontWeight: 600,
+                  color: "var(--text)", outline: "none",
                 }}
-                onFocus={e => (e.target.style.borderColor = phoneDirty ? (phoneVal.ok ? "#0ecb81" : "#f6465d") : "var(--accent)")}
-                onBlur={e => { setPhoneDirty(true); e.target.style.borderColor = phoneVal.ok ? "#0ecb81" : (phone ? "#f6465d" : "var(--stroke)"); }}
+                onBlur={() => setPhoneDirty(true)}
               />
             </div>
             <FieldStatus ok={phoneVal.ok} msg={phoneVal.msg} dirty={phoneDirty} />

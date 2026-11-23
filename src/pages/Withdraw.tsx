@@ -1291,7 +1291,14 @@ export default function Withdraw() {
           </div>
           {tab === "mobile" ? (
             <div>
-              <div style={{ display: "flex" }}>
+              <div style={{
+                display: "flex",
+                border: `1.5px solid ${destDirty ? (destVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`,
+                borderRadius: 9,
+                overflow: "hidden",
+                background: "var(--bg2)",
+                transition: "border-color 0.2s",
+              }}>
                 <div
                   style={{
                     display: "flex",
@@ -1299,9 +1306,7 @@ export default function Withdraw() {
                     gap: 5,
                     padding: "0 10px",
                     background: "var(--bg2)",
-                    border: `1.5px solid ${destDirty ? (destVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`,
-                    borderRight: "none",
-                    borderRadius: "9px 0 0 9px",
+                    borderRight: "1px solid var(--stroke)",
                     flexShrink: 0,
                   }}
                 >
@@ -1317,18 +1322,14 @@ export default function Withdraw() {
                   style={{
                     flex: 1,
                     padding: "10px 11px",
-                    borderRadius: "0 9px 9px 0",
-                    border: `1.5px solid ${destDirty ? (destVal.ok ? "#0ecb81" : "#f6465d") : "var(--stroke)"}`,
-                    borderLeft: "none",
-                    background: "var(--bg2)",
+                    border: "none",
+                    background: "transparent",
                     fontSize: 16,
                     fontWeight: 600,
                     color: "var(--text)",
                     outline: "none",
-                    transition: "border-color 0.2s",
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = destDirty ? (destVal.ok ? "#0ecb81" : "#f6465d") : "#f6465d")}
-                  onBlur={(e) => { setDestDirty(true); e.target.style.borderColor = destVal.ok ? "#0ecb81" : (destination ? "#f6465d" : "var(--stroke)"); }}
+                  onBlur={() => setDestDirty(true)}
                 />
               </div>
               <FieldStatus ok={destVal.ok} msg={destVal.msg} dirty={destDirty} />
