@@ -1866,12 +1866,15 @@ export default function Admin() {
                     {filteredWithdrawals.map((w) => {
                       const isProcessing = processingKey === w.key;
                       const userInfo = usersList.find((u) => u.uid === w.uid);
-                      const userPhone = userInfo?.phone || w.destination || "—";
-                      const userName = userInfo?.displayName || userInfo?.phone || "—";
+                      // Withdrawal details submitted by the user
+                      const payoutDestination = w.destination || userInfo?.phone || "—";
+                      const payoutAccountName = w.accountName || userInfo?.displayName || "—";
+                      const registeredPhone = userInfo?.phone || "—";
+                      const registeredName = userInfo?.displayName || userInfo?.phone || "User";
                       const feeVal = (w.fee != null && !isNaN(Number(w.fee))) ? Number(w.fee) : 0;
                       const netAmount = Math.max(0, w.amount - feeVal);
                       const netAmountStr = `$${fmt(netAmount)}`;
-                      const copyText = `Phone: ${userPhone}\nName: ${userName}\nAmount: ${netAmountStr}`;
+                      const copyText = `Account/Phone: ${payoutDestination}\nName: ${payoutAccountName}\nAmount: ${netAmountStr}`;
                       const methodLabel =
                         w.networkName ||
                         (w.type === "bot_activation"
@@ -1913,9 +1916,9 @@ export default function Admin() {
                             </div>
                           </div>
 
-                          {/* Copy rows: Phone / Name / Amount */}
+                          {/* Copy rows: Submitted Payout Account / Name / Amount */}
                           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {/* Row 1: Phone */}
+                            {/* Row 1: Payout Phone / Address (Submitted by user) */}
                             <div
                               style={{
                                 display: "flex",
@@ -1928,14 +1931,18 @@ export default function Admin() {
                               }}
                             >
                               <div>
-                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>📞 Phone</div>
-                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>{userPhone}</div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>
+                                  📱 Payout Account / Phone
+                                </div>
+                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all", fontFamily: "monospace" }}>
+                                  {payoutDestination}
+                                </div>
                               </div>
                               <button
-                                title="Copy Phone"
+                                title="Copy Payout Account / Phone"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(userPhone);
-                                  showMsg("Phone copied! 📋");
+                                  navigator.clipboard.writeText(payoutDestination);
+                                  showMsg("Payout account/phone copied! 📋");
                                 }}
                                 style={{
                                   flexShrink: 0,
@@ -1954,7 +1961,7 @@ export default function Admin() {
                               </button>
                             </div>
 
-                            {/* Row 2: Name */}
+                            {/* Row 2: Account Name (Submitted by user) */}
                             <div
                               style={{
                                 display: "flex",
@@ -1967,14 +1974,18 @@ export default function Admin() {
                               }}
                             >
                               <div>
-                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>👤 Name</div>
-                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>{userName}</div>
+                                <div style={{ fontSize: 10.5, color: "var(--muted)", fontWeight: 700, marginBottom: 1 }}>
+                                  👤 Account Name
+                                </div>
+                                <div style={{ fontSize: 13.5, fontWeight: 800, wordBreak: "break-all" }}>
+                                  {payoutAccountName}
+                                </div>
                               </div>
                               <button
-                                title="Copy Name"
+                                title="Copy Account Name"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(userName);
-                                  showMsg("Name copied! 📋");
+                                  navigator.clipboard.writeText(payoutAccountName);
+                                  showMsg("Account name copied! 📋");
                                 }}
                                 style={{
                                   flexShrink: 0,
@@ -2049,7 +2060,7 @@ export default function Admin() {
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(copyText);
-                              showMsg("All details copied (with Net Amount)! 📋");
+                              showMsg("All payout details copied! 📋");
                             }}
                             style={{
                               width: "100%",
@@ -2063,17 +2074,14 @@ export default function Admin() {
                               cursor: "pointer",
                             }}
                           >
-                            📋 Copy All (Phone · Name · Net Amount)
+                            📋 Copy All (Payout Account · Name · Net: {netAmountStr})
                           </button>
 
-                          {/* Destination / Account details */}
-                          {(w.destination || w.accountName) && (
-                            <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
-                              {w.destination && <div>→ Destination: <strong style={{ color: "var(--text)" }}>{w.destination}</strong></div>}
-                              {w.accountName && <div>→ Holder: <strong style={{ color: "var(--text)" }}>{w.accountName}</strong></div>}
-                              {w.adminNote && <div style={{ color: "#d97706" }}>⚠️ Note: {w.adminNote}</div>}
-                            </div>
-                          )}
+                          {/* Reference info: Registered profile details */}
+                          <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5, background: "var(--bg2)", borderRadius: 8, padding: "6px 10px" }}>
+                            <div>👤 Member: <strong>{registeredName}</strong> {registeredPhone !== "—" ? `· Reg: ${registeredPhone}` : ""} · UID: <span style={{ fontFamily: "monospace" }}>{w.uid.slice(0, 10)}…</span></div>
+                            {w.adminNote && <div style={{ color: "#d97706", marginTop: 2 }}>⚠️ Note: {w.adminNote}</div>}
+                          </div>
 
                           {/* Action buttons */}
                           <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
