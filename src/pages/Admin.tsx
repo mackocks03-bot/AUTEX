@@ -71,6 +71,7 @@ interface PaymentItem {
   networkName?: string;
   phone?: string;
   senderName?: string;
+  txHash?: string;
   accountNo?: string;
   accountName?: string;
   proofUrl?: string;
@@ -438,6 +439,7 @@ export default function Admin() {
                 networkName: p.networkName,
                 phone: p.phone,
                 senderName: p.senderName,
+                txHash: p.txHash || (p.depositType === "crypto" ? p.senderName : undefined),
                 accountNo: p.accountNo,
                 accountName: p.accountName,
                 proofUrl: p.proofUrl,
@@ -3002,8 +3004,12 @@ export default function Admin() {
             {/* Details Grid */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 12.5 }}>
               <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10 }}>
-                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Sender Name</div>
-                <div style={{ fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{selectedPayment.senderName || "—"}</div>
+                <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>
+                  {selectedPayment.depositType === "crypto" || selectedPayment.txHash ? "Transaction Hash (TxID)" : "Sender Name"}
+                </div>
+                <div style={{ fontWeight: 800, color: "var(--text)", marginTop: 2, wordBreak: "break-all", fontFamily: (selectedPayment.depositType === "crypto" || selectedPayment.txHash) ? "monospace" : undefined }}>
+                  {selectedPayment.txHash || selectedPayment.senderName || "—"}
+                </div>
               </div>
               <div style={{ background: "var(--bg2)", padding: "10px 12px", borderRadius: 10 }}>
                 <div style={{ color: "var(--muted)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Phone / Contact</div>

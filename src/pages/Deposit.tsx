@@ -342,9 +342,12 @@ function ProofUploadSheet({ open, onClose, net, amount, phone, tabKey, onDone }:
 
   async function handleSubmit() {
     setError("");
-    if (!senderName.trim()) { setError("Please enter your sender name."); return; }
-    if (!proofFile)         { setError("Please upload your payment screenshot."); return; }
-    if (!user)              { setError("You must be logged in."); return; }
+    if (!senderName.trim()) {
+      setError(tabKey === "crypto" ? "Please enter the transaction hash (TxID)." : "Please enter your sender name.");
+      return;
+    }
+    if (!proofFile) { setError("Please upload your payment screenshot."); return; }
+    if (!user)      { setError("You must be logged in."); return; }
     setSubmitting(true);
     try {
       const ext = proofFile.name.split(".").pop() || "jpg";
@@ -358,6 +361,7 @@ function ProofUploadSheet({ open, onClose, net, amount, phone, tabKey, onDone }:
         currency: net.currency,
         phone: tabKey === "mobile" ? phone : null,
         senderName: senderName.trim(),
+        txHash: tabKey === "crypto" ? senderName.trim() : null,
         accountNo: net.accountNo,
         accountName: net.accountName,
         proofUrl,
@@ -393,24 +397,32 @@ function ProofUploadSheet({ open, onClose, net, amount, phone, tabKey, onDone }:
         </span>
       </div>
 
-      {/* Sender Name */}
+      {/* Sender Name / Transaction Hash */}
       <div style={{ marginBottom: 10 }}>
         <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-          Sender Name *
+          {tabKey === "crypto" ? "Transaction Hash (TxID) *" : "Sender Name *"}
         </label>
         <input
           type="text" value={senderName}
           onChange={e => setSenderName(e.target.value)}
-          placeholder="Your name on the account"
+          placeholder={tabKey === "crypto" ? "Paste transaction hash (TxID)" : "Your name on the account"}
           style={{
             width: "100%", padding: "11px 12px", borderRadius: 10,
             border: "1.5px solid var(--stroke)", background: "var(--bg2)",
-            fontSize: 16, fontWeight: 600, color: "var(--text)", outline: "none",
+            fontSize: tabKey === "crypto" ? 13.5 : 16,
+            fontWeight: 600,
+            fontFamily: tabKey === "crypto" ? "monospace" : undefined,
+            color: "var(--text)", outline: "none",
             boxSizing: "border-box", transition: "border-color 0.2s",
           }}
           onFocus={e => (e.target.style.borderColor = "var(--accent)")}
           onBlur={e => (e.target.style.borderColor = "var(--stroke)")}
         />
+        {tabKey === "crypto" && (
+          <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 4 }}>
+            Enter the blockchain TxID or internal transfer ID from your crypto wallet/exchange.
+          </div>
+        )}
       </div>
 
       {/* File Upload */}
