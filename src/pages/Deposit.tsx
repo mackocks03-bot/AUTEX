@@ -27,17 +27,17 @@ interface Network {
 }
 
 const DEFAULT_ZW_NETWORKS: Network[] = [
-  { id: "ecocash",   name: "EcoCash",  logo: ecocashLogo,                                                                                                      color: "#e31e24", bg: "rgba(227,30,36,0.10)",   currency: "USD", minAmount: 10, hint: "07X XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0771000001" },
-  { id: "onemoney",  name: "OneMoney", logo: onemoneyLogo,                                                                                                     color: "#f7a800", bg: "rgba(247,168,0,0.10)",   currency: "USD", minAmount: 10, hint: "071 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0712000001" },
-  { id: "innbucks",  name: "InnBucks", logo: "https://innbucks.co.zw/wp-content/uploads/2022/03/Innbucks-logo.png",                                            color: "#1565c0", bg: "rgba(21,101,192,0.10)",  currency: "USD", minAmount: 10, hint: "077 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0773000001" },
-  { id: "telecash",  name: "TeleCash", logo: telecashLogo,                                                                                                     color: "#0057a8", bg: "rgba(0,87,168,0.10)",    currency: "USD", minAmount: 10, hint: "073 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0732000001" },
+  { id: "ecocash",   name: "EcoCash",  logo: ecocashLogo,                                                                                                      color: "#e31e24", bg: "rgba(227,30,36,0.10)",   currency: "USD", minAmount: 5, hint: "07X XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0771000001" },
+  { id: "onemoney",  name: "OneMoney", logo: onemoneyLogo,                                                                                                     color: "#f7a800", bg: "rgba(247,168,0,0.10)",   currency: "USD", minAmount: 5, hint: "071 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0712000001" },
+  { id: "innbucks",  name: "InnBucks", logo: "https://innbucks.co.zw/wp-content/uploads/2022/03/Innbucks-logo.png",                                            color: "#1565c0", bg: "rgba(21,101,192,0.10)",  currency: "USD", minAmount: 5, hint: "077 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0773000001" },
+  { id: "telecash",  name: "TeleCash", logo: telecashLogo,                                                                                                     color: "#0057a8", bg: "rgba(0,87,168,0.10)",    currency: "USD", minAmount: 5, hint: "073 XXX XXXX", accountName: "AUTEX PAYMENTS", accountNo: "0732000001" },
 ];
 
 const DEFAULT_CRYPTO_NETWORKS: Network[] = [
-  { id: "usdt-trc20", name: "USDT",    network: "TRC20 · Tron",           logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",           color: "#26a17b", bg: "rgba(38,161,123,0.10)",  currency: "USDT", minAmount: 10,     confirmations: 1,  accountName: "AUTEX CRYPTO WALLET", accountNo: "TYour_USDT_TRC20_Address_Here" },
-  { id: "usdt-erc20", name: "USDT",    network: "ERC20 · Ethereum",        logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",           color: "#627EEA", bg: "rgba(98,126,234,0.10)", currency: "USDT", minAmount: 10,     confirmations: 6,  accountName: "AUTEX CRYPTO WALLET", accountNo: "0xYour_ERC20_Address" },
-  { id: "bnb-bsc",    name: "BNB",     network: "BEP20 · BNB Smart Chain", logo: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",    color: "#F3BA2F", bg: "rgba(243,186,47,0.10)", currency: "BNB",  minAmount: 10,     confirmations: 15, accountName: "AUTEX CRYPTO WALLET", accountNo: "0xYour_BNB_Address" },
-  { id: "btc",        name: "Bitcoin", network: "BTC Network",             logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",             color: "#F7931A", bg: "rgba(247,147,26,0.10)", currency: "BTC",  minAmount: 10,     confirmations: 3,  accountName: "AUTEX CRYPTO WALLET", accountNo: "bc1YourBitcoinAddress" },
+  { id: "usdt-trc20", name: "USDT",    network: "TRC20 · Tron",           logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",           color: "#26a17b", bg: "rgba(38,161,123,0.10)",  currency: "USDT", minAmount: 5,     confirmations: 1,  accountName: "AUTEX CRYPTO WALLET", accountNo: "TYour_USDT_TRC20_Address_Here" },
+  { id: "usdt-erc20", name: "USDT",    network: "ERC20 · Ethereum",        logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",           color: "#627EEA", bg: "rgba(98,126,234,0.10)", currency: "USDT", minAmount: 5,     confirmations: 6,  accountName: "AUTEX CRYPTO WALLET", accountNo: "0xYour_ERC20_Address" },
+  { id: "bnb-bsc",    name: "BNB",     network: "BEP20 · BNB Smart Chain", logo: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",    color: "#F3BA2F", bg: "rgba(243,186,47,0.10)", currency: "BNB",  minAmount: 5,     confirmations: 15, accountName: "AUTEX CRYPTO WALLET", accountNo: "0xYour_BNB_Address" },
+  { id: "btc",        name: "Bitcoin", network: "BTC Network",             logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",             color: "#F7931A", bg: "rgba(247,147,26,0.10)", currency: "BTC",  minAmount: 5,     confirmations: 3,  accountName: "AUTEX CRYPTO WALLET", accountNo: "bc1YourBitcoinAddress" },
 ];
 
 // ─── Global sheet animation styles ───────────────────────────────────────────
@@ -677,7 +677,7 @@ export default function Deposit() {
             color: val.color || (val.category === "crypto" ? "#26a17b" : "#00a651"),
             bg: val.bg || (val.category === "crypto" ? "rgba(38,161,123,0.10)" : "rgba(0,166,81,0.10)"),
             currency: val.currency || (val.category === "crypto" ? "USDT" : "USD"),
-            minAmount: Number(val.minAmount) || 10,
+            minAmount: Number(val.minAmount) === 10 || !val.minAmount ? 5 : Number(val.minAmount),
             hint: val.hint || (val.category === "crypto" ? "Wallet address" : "07X XXX XXXX"),
             accountName: val.accountName || "AUTEX OFFICIAL",
             accountNo: val.accountNo || "",
@@ -725,7 +725,7 @@ export default function Deposit() {
     setSheet1(false); setSheet2(false); setSheet3(false); setDone(false);
   }
 
-  const quickAmounts = tab === "mobile" ? [10, 20, 50, 100, 200] : [10, 50, 100, 200, 500];
+  const quickAmounts = tab === "mobile" ? [5, 10, 20, 50, 100] : [5, 10, 25, 50, 100];
 
   function handleProceed() {
     setFormError("");
