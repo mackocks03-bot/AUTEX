@@ -79,6 +79,7 @@ interface PaymentItem {
   rejectedAt?: number;
   commissionProcessed?: boolean;
   adminNote?: string;
+  deletedFromAdmin?: boolean;
 }
 
 interface UserProfile {
@@ -447,6 +448,7 @@ export default function Admin() {
                 rejectedAt: p.rejectedAt,
                 commissionProcessed: p.commissionProcessed,
                 adminNote: p.adminNote,
+                deletedFromAdmin: Boolean(p.deletedFromAdmin),
               });
             });
           }
@@ -801,54 +803,17 @@ export default function Admin() {
     });
   }
 
-  /* ── Helper: Revoke/Clawback Commissions for a Deposit ──────── */
-  async function revokeCommissionsForDeposit(p: PaymentItem) {
-    try {
-      // 1. Fetch depositor's user profile to get uplines
-      const userSnap = await get(ref(db, `users/${p.uid}`));
-      const uplineUids: string[] = [];
-      if (userSnap.exists()) {
-        const u = userSnap.val();
-        if (u.referredBy) uplineUids.push(u.referredBy);
-        if (u.referredByL2) uplineUids.push(u.referredByL2);
-        if (u.referredByL3) uplineUids.push(u.referredByL3);
-      }
-
-      // 2. Remove commissions from userPayments & referralEarnings for each upline
-      for (const uplineUid of uplineUids) {
-        // Remove matching commission entries from userPayments (strictly for this deposit)
-        const pSnap = await get(ref(db, `userPayments/${uplineUid}`));
-        if (pSnap.exists()) {
-          const pays = pSnap.val();
-          for (const [key, val] of Object.entries(pays as Record<string, any>)) {
-            if (val?.depositKey === p.key) {
-              await remove(ref(db, `userPayments/${uplineUid}/${key}`));
-            }
-          }
-        }
-
-        // Remove matching entries from referralEarnings (strictly for this deposit)
-        const eSnap = await get(ref(db, `referralEarnings/${uplineUid}`));
-        if (eSnap.exists()) {
-          const earns = eSnap.val();
-          for (const [key, val] of Object.entries(earns as Record<string, any>)) {
-            if (val?.depositKey === p.key) {
-              await remove(ref(db, `referralEarnings/${uplineUid}/${key}`));
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Error revoking commissions:", err);
-    }
-  }
-
   function handleRejectDeposit(p: PaymentItem) {
+    if (p.status === "completed") {
+      showMsg("Completed deposits cannot be rejected. User balance and commissions are preserved.", "err");
+      return;
+    }
+
     setPopupDialog({
       isOpen: true,
       type: "prompt",
-      title: "Reject Deposit",
-      message: `Enter reason for rejecting deposit of $${fmt(p.amount)}:`,
+      title: "Reject Deposit Request",
+      message: `Enter reason for rejecting deposit request of $${fmt(p.amount)}:`,
       defaultValue: "Invalid payment proof or funds not received",
       inputValue: "Invalid payment proof or funds not received",
       inputPlaceholder: "Enter rejection reason…",
@@ -859,22 +824,18 @@ export default function Admin() {
         setPopupDialog(null);
         setProcessingKey(p.key);
         try {
-          // If commissions were previously processed for this deposit, revoke them immediately
-          if (p.commissionProcessed || p.status === "completed") {
-            await revokeCommissionsForDeposit(p);
-          }
-
+          // Reject pending deposit. Commissions are NOT distributed, and NO commissions/balances are cleared.
           await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
             status: "rejected",
             rejectedAt: Date.now(),
-            commissionProcessed: false,
             adminNote: (reason || "").trim() || "Rejected by administrator",
           });
+
           // Notify depositor
           await sendUserNotification(
             p.uid,
             "❌ Deposit Rejected",
-            `Your deposit of $${fmt(p.amount)} ${p.currency || "USD"}${p.networkName || p.network ? ` via ${p.networkName || p.network}` : ""}${p.accountNo ? ` (Acc: ${p.accountNo})` : ""} has been rejected. Reason: ${(reason || "").trim() || "Invalid payment proof or funds not received"}. Ref: ${p.key.slice(0, 16)}.`,
+            `Your deposit request of $${fmt(p.amount)} ${p.currency || "USD"}${p.networkName || p.network ? ` via ${p.networkName || p.network}` : ""}${p.accountNo ? ` (Acc: ${p.accountNo})` : ""} has been rejected. Reason: ${(reason || "").trim() || "Invalid payment proof or funds not received"}. Ref: ${p.key.slice(0, 16)}.`,
             "deposit_rejected",
             {
               amount: p.amount,
@@ -888,7 +849,8 @@ export default function Admin() {
               rejectedAt: Date.now(),
             }
           );
-          showMsg(`Deposit of $${fmt(p.amount)} rejected and commissions cancelled (if any). ❌`, "err");
+
+          showMsg(`Deposit request of $${fmt(p.amount)} rejected. Balances and commissions are preserved. ❌`, "err");
           if (selectedPayment?.key === p.key) {
             setSelectedPayment(null);
           }
@@ -906,21 +868,26 @@ export default function Admin() {
       isOpen: true,
       type: "confirm",
       title: "Delete Deposit Record",
-      message: `Are you sure you want to PERMANENTLY DELETE deposit record $${fmt(p.amount)} (${p.key})?\n\nThis action cannot be undone.`,
-      confirmLabel: "Delete Permanently",
+      message: `Are you sure you want to delete deposit record $${fmt(p.amount)} (${p.key})?\n\nThis will remove the record from Admin Deposits. User balances and referral commissions will remain intact.`,
+      confirmLabel: "Delete Record",
       confirmColor: "#ef4444",
       cancelLabel: "Cancel",
       onConfirm: async () => {
         setPopupDialog(null);
         setProcessingKey(p.key);
         try {
-          // If commissions were previously processed for this deposit, revoke them as well
-          if (p.commissionProcessed || p.status === "completed") {
-            await revokeCommissionsForDeposit(p);
+          // If the deposit was completed, hide from Admin view so depositor balance & upline commissions remain 100% intact
+          if (p.status === "completed") {
+            await update(ref(db, `userPayments/${p.uid}/${p.key}`), {
+              deletedFromAdmin: true,
+              adminDeletedAt: Date.now(),
+            });
+          } else {
+            // Pending or rejected: safe to remove record completely without affecting balance
+            await remove(ref(db, `userPayments/${p.uid}/${p.key}`));
           }
 
-          await remove(ref(db, `userPayments/${p.uid}/${p.key}`));
-          showMsg("Deposit record permanently deleted and commissions cleaned up. 🗑️");
+          showMsg("Deposit record removed from admin list. Balances and commissions remain intact. 🗑️");
           if (selectedPayment?.key === p.key) {
             setSelectedPayment(null);
           }
@@ -965,7 +932,7 @@ export default function Admin() {
   const EXCLUDED_DEPOSIT_TYPES = ["referral_commission", "bot_reward", "admin_adjustment", "commission"];
 
   const depositPayments = useMemo(
-    () => payments.filter((p) => !EXCLUDED_DEPOSIT_TYPES.includes(p.type || "")),
+    () => payments.filter((p) => !EXCLUDED_DEPOSIT_TYPES.includes(p.type || "") && !p.deletedFromAdmin),
     [payments]
   );
 
