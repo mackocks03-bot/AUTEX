@@ -7,6 +7,7 @@ import { BOTS, getBotById } from "@/lib/bots";
 import { AdminNotifications } from "./AdminNotifications";
 import { AdminSettings } from "./AdminSettings";
 import { AdminPaymentAccounts } from "./AdminPaymentAccounts";
+import { AdminWhatsApp } from "./AdminWhatsApp";
 
 /* ── Types ─────────────────────────────────────────── */
 type AdminTab =
@@ -16,6 +17,7 @@ type AdminTab =
   | "payments"
   | "payment-methods"
   | "users"
+  | "whatsapp"
   | "notifications"
   | "settings";
 
@@ -1019,6 +1021,7 @@ export default function Admin() {
     { key: "payments", label: "Deposits", icon: "💳", badge: pendingPayments.length },
     { key: "payment-methods", label: "Deposit Accounts", icon: "🏦" },
     { key: "users", label: "Users Directory", icon: "👥", badge: usersList.length },
+    { key: "whatsapp", label: "WhatsApp Group", icon: "💬" },
     { key: "notifications", label: "Alerts & Broadcast", icon: "🔔" },
     { key: "settings", label: "Settings", icon: "⚙️" },
   ];
@@ -1317,6 +1320,8 @@ export default function Admin() {
                   ? "Deposit Accounts & Addresses"
                   : tab === "users"
                   ? "Users Directory"
+                  : tab === "whatsapp"
+                  ? "WhatsApp Community Group"
                   : tab === "notifications"
                   ? "Broadcast Alerts"
                   : "Platform Settings"}
@@ -2867,6 +2872,11 @@ export default function Admin() {
                   TAB: DEPOSIT ACCOUNTS & ADDRESSES
               ────────────────────────────────────────────────────────── */}
               {tab === "payment-methods" && <AdminPaymentAccounts />}
+
+              {/* ──────────────────────────────────────────────────────────
+                  TAB: WHATSAPP COMMUNITY GROUP
+              ────────────────────────────────────────────────────────── */}
+              {tab === "whatsapp" && <AdminWhatsApp />}
 
               {/* ──────────────────────────────────────────────────────────
                   TAB 6: BROADCAST ALERTS & NOTIFICATIONS

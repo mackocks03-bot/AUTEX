@@ -5,6 +5,7 @@ import { onValue, ref } from "firebase/database";
 import { db } from "@/firebase";
 import { Navbar } from "./Navbar";
 import { BottomNav } from "./BottomNav";
+import { WhatsAppBubble } from "./WhatsAppBubble";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -361,6 +362,7 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
 
       {children}
+      <WhatsAppBubble />
       <BottomNav />
     </div>
   );
