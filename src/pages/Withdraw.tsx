@@ -1114,8 +1114,7 @@ export default function Withdraw() {
         const deadline = (deactivatedAt || nowTs) + TWO_DAYS_MS;
         const remainingMs = Math.max(0, deadline - nowTs);
         const totalSec = Math.floor(remainingMs / 1000);
-        const days = Math.floor(totalSec / 86400);
-        const hrs = Math.floor((totalSec % 86400) / 3600);
+        const hrs = Math.floor(totalSec / 3600);
         const mins = Math.floor((totalSec % 3600) / 60);
         const secs = totalSec % 60;
         const pad = (n: number) => String(n).padStart(2, "0");
@@ -1259,12 +1258,12 @@ export default function Withdraw() {
                         Withdrawals Locked
                       </h2>
                       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", lineHeight: 1.3, marginTop: 2 }}>
-                        Deposit <strong style={{ color: "#fca5a5" }}>30%</strong> within <strong style={{ color: "#fde047" }}>2 days</strong> to reactivate.
+                        Deposit <strong style={{ color: "#fca5a5" }}>30%</strong> within <strong style={{ color: "#fde047" }}>48 hours</strong> to reactivate.
                       </div>
                     </div>
                   </div>
 
-                  {/* 2-Day Countdown Timer */}
+                  {/* 48-Hour Countdown Timer */}
                   <div
                     style={{
                       borderRadius: 12,
@@ -1284,15 +1283,14 @@ export default function Withdraw() {
                         marginBottom: 5,
                       }}
                     >
-                      ⏳ Time Limit Remaining (2 Days Max)
+                      ⏳ Time Limit Remaining (48 Hours)
                     </div>
                     {remainingMs > 0 ? (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                         {[
-                          { val: pad(days), label: "Days" },
-                          { val: pad(hrs), label: "Hrs" },
-                          { val: pad(mins), label: "Min" },
-                          { val: pad(secs), label: "Sec" },
+                          { val: pad(hrs), label: "Hours" },
+                          { val: pad(mins), label: "Minutes" },
+                          { val: pad(secs), label: "Seconds" },
                         ].map((unit) => (
                           <div
                             key={unit.label}
