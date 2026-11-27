@@ -1046,225 +1046,288 @@ export default function Withdraw() {
         }
       `}</style>
 
-      {/* ── ACCOUNT ACTIVATION GATE ── */}
+      {/* ── ACCOUNT ACTIVATION GATE (MOBILE-FIRST BOTTOM SHEET) ── */}
       {isActive === false && (() => {
         const required = parseFloat((totalDeposited * 0.25).toFixed(2));
         const displayRequired = required > 0 ? required : 25;
         return (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9980,
-              background:
-                "radial-gradient(ellipse at 20% 30%, rgba(239,68,68,0.18) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(220,38,38,0.12) 0%, transparent 60%), rgba(0,0,0,0.75)",
-              backdropFilter: "blur(16px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "20px",
-            }}
-          >
+          <>
+            {/* Blocking backdrop */}
             <div
               style={{
-                maxWidth: 420,
-                width: "100%",
-                borderRadius: 28,
-                background: "rgba(15, 23, 42, 0.95)",
-                border: "1.5px solid rgba(239,68,68,0.4)",
-                boxShadow:
-                  "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08)",
-                overflow: "hidden",
-                textAlign: "center",
+                position: "fixed",
+                inset: 0,
+                zIndex: 9980,
+                background: "rgba(0,0,0,0.68)",
+                backdropFilter: "blur(8px)",
+                animation: "maskIn 0.28s cubic-bezier(0.4,0,0.2,1) both",
+              }}
+            />
+
+            {/* Bottom Sheet Container */}
+            <div
+              style={{
+                position: "fixed",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 9981,
+                display: "flex",
+                justifyContent: "center",
+                pointerEvents: "none",
               }}
             >
-              {/* Red alert banner */}
               <div
                 style={{
-                  background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
-                  padding: "14px 24px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
+                  width: "100%",
+                  maxWidth: 520,
+                  maxHeight: "90dvh",
+                  overflowY: "auto",
+                  pointerEvents: "all",
+                  background: "linear-gradient(180deg, #0f172a 0%, #0b1120 100%)",
+                  borderRadius: "26px 26px 0 0",
+                  borderTop: "1.5px solid rgba(239,68,68,0.45)",
+                  borderLeft: "1px solid rgba(255,255,255,0.08)",
+                  borderRight: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "0 -16px 56px rgba(0,0,0,0.65)",
+                  animation: "sheetIn 0.34s cubic-bezier(0.34,1.1,0.64,1) both",
+                  paddingBottom: "calc(22px + env(safe-area-inset-bottom, 0px))",
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <span style={{ color: "#fff", fontWeight: 900, fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  Account Suspended
-                </span>
-              </div>
+                {/* Sheet Handle */}
+                <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
+                  <div style={{ width: 38, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.2)" }} />
+                </div>
 
-              {/* Body */}
-              <div style={{ padding: "30px 28px 28px" }}>
-                {/* Lock Icon with pulse */}
+                {/* Top Alert Pill + Back Home */}
                 <div
                   style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    background: "radial-gradient(circle at 40% 35%, #ef4444 0%, #7f1d1d 100%)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 20px",
-                    fontSize: 36,
-                    animation: "gateFloat 3s ease-in-out infinite, gatePulse 2.5s ease-in-out infinite",
+                    justifyContent: "space-between",
+                    padding: "4px 20px 12px",
+                    borderBottom: "1px solid rgba(255,255,255,0.07)",
                   }}
                 >
-                  🔒
-                </div>
-
-                <h2
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: 22,
-                    fontWeight: 900,
-                    color: "#ffffff",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Withdrawals Locked
-                </h2>
-                <p
-                  style={{
-                    margin: "0 0 24px",
-                    fontSize: 13.5,
-                    color: "rgba(255,255,255,0.65)",
-                    lineHeight: 1.65,
-                  }}
-                >
-                  Your account has been temporarily deactivated by the administrator. To unlock full withdrawal access, please make a reactivation deposit.
-                </p>
-
-                {/* Required amount card */}
-                <div
-                  style={{
-                    borderRadius: 18,
-                    padding: "20px 20px",
-                    background:
-                      "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(185,28,28,0.08) 100%)",
-                    border: "1px solid rgba(239,68,68,0.3)",
-                    marginBottom: 22,
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Shimmer line */}
                   <div
                     style={{
-                      position: "absolute",
-                      inset: 0,
-                      background:
-                        "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.05) 50%, transparent 80%)",
-                      backgroundSize: "200% 100%",
-                      animation: "gateShine 3s linear infinite",
-                      pointerEvents: "none",
-                    }}
-                  />
-
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                    Required Reactivation Deposit
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 40,
-                      fontWeight: 900,
-                      color: "#f87171",
-                      letterSpacing: "-0.03em",
-                      lineHeight: 1,
-                      marginBottom: 4,
-                    }}
-                  >
-                    ${displayRequired.toFixed(2)}
-                  </div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                    = 25% of your total deposited amount (${totalDeposited.toFixed(2)} USD)
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* Copy Amount */}
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(displayRequired.toFixed(2)).catch(() => {});
-                      setCopiedGate(true);
-                      setTimeout(() => setCopiedGate(false), 2500);
-                    }}
-                    style={{
-                      padding: "14px 20px",
-                      borderRadius: 14,
-                      border: "1.5px solid rgba(239,68,68,0.4)",
-                      background: copiedGate
-                        ? "rgba(0,166,81,0.2)"
-                        : "rgba(239,68,68,0.12)",
-                      color: copiedGate ? "#4ade80" : "#fca5a5",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      background: "rgba(239,68,68,0.16)",
+                      border: "1px solid rgba(239,68,68,0.4)",
+                      color: "#fca5a5",
+                      fontSize: 11.5,
                       fontWeight: 800,
-                      fontSize: 15,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      transition: "all 0.25s ease",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
                     }}
                   >
-                    {copiedGate ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        Copied! ${displayRequired.toFixed(2)}
-                      </>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                        Copy Amount: ${displayRequired.toFixed(2)} USD
-                      </>
-                    )}
-                  </button>
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: "#ef4444",
+                        boxShadow: "0 0 8px #ef4444",
+                      }}
+                    />
+                    Account Deactivated
+                  </div>
 
-                  {/* Deposit Now */}
                   <button
-                    onClick={() => navigate("/deposit")}
+                    type="button"
+                    onClick={() => navigate("/")}
                     style={{
-                      padding: "14px 20px",
-                      borderRadius: 14,
-                      border: "none",
-                      background: "linear-gradient(135deg, #00a651 0%, #007a3c 100%)",
-                      color: "#ffffff",
-                      fontWeight: 900,
-                      fontSize: 15,
+                      background: "rgba(255,255,255,0.07)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.75)",
+                      borderRadius: 999,
+                      padding: "5px 12px",
+                      fontSize: 12,
+                      fontWeight: 700,
                       cursor: "pointer",
-                      boxShadow: "0 8px 24px rgba(0,166,81,0.4)",
+                    }}
+                  >
+                    Home
+                  </button>
+                </div>
+
+                {/* Sheet Body */}
+                <div style={{ padding: "18px 20px 6px", textAlign: "center" }}>
+                  {/* Compact animated lock icon */}
+                  <div
+                    style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: "50%",
+                      background: "radial-gradient(circle at 38% 32%, #ef4444 0%, #7f1d1d 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 8,
+                      margin: "0 auto 14px",
+                      fontSize: 28,
+                      animation: "gateFloat 3s ease-in-out infinite, gatePulse 2.5s ease-in-out infinite",
                     }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M12 2v20M17 7l-5-5-5 5" />
-                    </svg>
-                    Deposit Now to Reactivate
-                  </button>
+                    🔒
+                  </div>
 
-                  {/* Contact support hint */}
-                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>
-                    After depositing, contact support or wait for admin approval to restore your withdrawal access.
+                  <h2
+                    style={{
+                      margin: "0 0 6px",
+                      fontSize: 20,
+                      fontWeight: 900,
+                      color: "#ffffff",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Withdrawals Locked
+                  </h2>
+                  <p
+                    style={{
+                      margin: "0 0 16px",
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.68)",
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    Your account is currently inactive. Deposit <strong style={{ color: "#fca5a5" }}>25%</strong> of your total deposited amount to reactivate and unlock withdrawals.
                   </p>
+
+                  {/* Required Amount Card */}
+                  <div
+                    style={{
+                      borderRadius: 18,
+                      padding: "16px",
+                      background: "linear-gradient(135deg, rgba(239,68,68,0.16) 0%, rgba(185,28,28,0.08) 100%)",
+                      border: "1px solid rgba(239,68,68,0.32)",
+                      marginBottom: 16,
+                      position: "relative",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.06) 50%, transparent 80%)",
+                        backgroundSize: "200% 100%",
+                        animation: "gateShine 3s linear infinite",
+                        pointerEvents: "none",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        color: "rgba(255,255,255,0.58)",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 4,
+                      }}
+                    >
+                      Required Reactivation Deposit
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 34,
+                        fontWeight: 900,
+                        color: "#f87171",
+                        letterSpacing: "-0.03em",
+                        lineHeight: 1.1,
+                        marginBottom: 4,
+                      }}
+                    >
+                      ${displayRequired.toFixed(2)}{" "}
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>USD</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.48)" }}>
+                      25% of ${totalDeposited.toFixed(2)} total deposited
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(displayRequired.toFixed(2)).catch(() => {});
+                        setCopiedGate(true);
+                        setTimeout(() => setCopiedGate(false), 2500);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "13px 16px",
+                        borderRadius: 14,
+                        border: `1.5px solid ${copiedGate ? "rgba(74,222,128,0.5)" : "rgba(239,68,68,0.4)"}`,
+                        background: copiedGate ? "rgba(0,166,81,0.22)" : "rgba(239,68,68,0.12)",
+                        color: copiedGate ? "#4ade80" : "#fca5a5",
+                        fontWeight: 800,
+                        fontSize: 14.5,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {copiedGate ? (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Copied ${displayRequired.toFixed(2)}!
+                        </>
+                      ) : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                          Copy Amount (${displayRequired.toFixed(2)})
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate("/deposit")}
+                      style={{
+                        width: "100%",
+                        padding: "14px 16px",
+                        borderRadius: 14,
+                        border: "none",
+                        background: "linear-gradient(135deg, #00a651 0%, #007a3c 100%)",
+                        color: "#ffffff",
+                        fontWeight: 900,
+                        fontSize: 15,
+                        cursor: "pointer",
+                        boxShadow: "0 8px 24px rgba(0,166,81,0.38)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M12 2v20M17 7l-5-5-5 5" />
+                      </svg>
+                      Deposit Now to Reactivate
+                    </button>
+
+                    <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "rgba(255,255,255,0.42)", lineHeight: 1.45 }}>
+                      After depositing, your account will be reactivated once your payment is verified.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         );
       })()}
 
