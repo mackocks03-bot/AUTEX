@@ -606,11 +606,11 @@ export function AdminUserAccess() {
             </li>
             <li>
               <strong>Deactivated</strong> accounts cannot submit any withdrawal request. The withdrawal page shows a
-              payment gate requiring the user to pay <strong>25% of their total deposited amount</strong> to
+              payment gate requiring the user to pay <strong>30% of their total deposited amount</strong> within <strong>2 days (48 hours)</strong> to
               reactivate.
             </li>
             <li>The system automatically calculates the required amount and shows users a copy button and deposit redirect.</li>
-            <li>Once a deactivated user deposits the required 25%, their account can be manually reactivated here.</li>
+            <li>Once a deactivated user deposits the required 30%, their account can be manually reactivated here.</li>
           </ul>
         </div>
       </div>

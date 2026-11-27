@@ -840,50 +840,100 @@ export default function Withdraw() {
     ? validateZwPhone(destination)
     : selectedNet ? validateCryptoAddr(destination, selectedNet.id) : { ok: false, msg: "" };
 
-  // ── Account Activation Status ──
-  const [isActive, setIsActive] = useState<boolean | null>(null); // null = loading
-  const [totalDeposited, setTotalDeposited] = useState(0);
+  // ── Account Activation Status (cached for instant render + live Firebase sync) ──
+  const [isActive, setIsActive] = useState<boolean | null>(() => {
+    if (!user) return null;
+    try {
+      const cached = localStorage.getItem(`autex_active_${user.uid}`);
+      if (cached === "false") return false;
+      if (cached === "true") return true;
+    } catch { /* ignore */ }
+    return null;
+  });
+  const [deactivatedAt, setDeactivatedAt] = useState<number | null>(null);
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
+  const [totalDeposited, setTotalDeposited] = useState<number>(() => {
+    if (!user) return 0;
+    try {
+      const cached = Number(localStorage.getItem(`autex_dep_total_${user.uid}`));
+      return Number.isFinite(cached) && cached > 0 ? cached : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [copiedGate, setCopiedGate] = useState(false);
 
   useEffect(() => {
-    if (!user) { setIsActive(null); return; }
-    const r = dbRef(db, `users/${user.uid}/isActive`);
-    return onValue(r, (snap) => {
-      // isActive defaults to true if not explicitly set to false
-      setIsActive(snap.exists() ? snap.val() !== false : true);
+    if (!user) {
+      setIsActive(null);
+      setDeactivatedAt(null);
+      return;
+    }
+    try {
+      const cached = localStorage.getItem(`autex_active_${user.uid}`);
+      if (cached === "false") setIsActive(false);
+    } catch { /* ignore */ }
+
+    const activeRef = dbRef(db, `users/${user.uid}/isActive`);
+    const tsRef = dbRef(db, `users/${user.uid}/statusUpdatedAt`);
+
+    const unsubActive = onValue(activeRef, (snap) => {
+      const active = snap.exists() ? snap.val() !== false : true;
+      setIsActive(active);
+      try {
+        localStorage.setItem(`autex_active_${user.uid}`, String(active));
+        if (active) {
+          localStorage.removeItem(`autex_deactivated_at_${user.uid}`);
+        }
+      } catch { /* ignore */ }
     }, () => setIsActive(true));
-  }, [user]);
 
-  // Track gross deposited (all completed userPayments that are real deposits)
-  useEffect(() => {
-    if (!user) { setTotalDeposited(0); return; }
-    const EXCLUDED = ["referral_commission", "bot_reward", "admin_adjustment", "commission"];
-    const pRef = dbRef(db, `userPayments/${user.uid}`);
-    return onValue(pRef, (snap) => {
-      let total = 0;
-      if (snap.exists()) {
-        snap.forEach((child) => {
-          const v = child.val();
-          const s = String(v.status || "").toLowerCase();
-          const t = String(v.type || "deposit");
-          if (["completed", "success", "paid"].includes(s) && !EXCLUDED.includes(t)) {
-            total += Number(v.amount) || 0;
-          }
-        });
+    const unsubTs = onValue(tsRef, (snap) => {
+      if (snap.exists() && typeof snap.val() === "number") {
+        setDeactivatedAt(snap.val());
       }
-      setTotalDeposited(total);
     }, () => {});
+
+    return () => {
+      unsubActive();
+      unsubTs();
+    };
   }, [user]);
 
-  // Live balance
+  // 2-day (48h) live countdown ticker while deactivated
+  useEffect(() => {
+    if (isActive !== false || !user) return;
+    if (!deactivatedAt) {
+      try {
+        const key = `autex_deactivated_at_${user.uid}`;
+        const saved = Number(localStorage.getItem(key));
+        if (Number.isFinite(saved) && saved > 0) {
+          setDeactivatedAt(saved);
+        } else {
+          const now = Date.now();
+          localStorage.setItem(key, String(now));
+          setDeactivatedAt(now);
+        }
+      } catch {
+        setDeactivatedAt(Date.now());
+      }
+    }
+    setNowTs(Date.now());
+    const id = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isActive, deactivatedAt, user]);
+
+  // Live balance + gross deposited amount (single shared listener)
   const [balance, setBalance] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) {
       setBalance(null);
+      setTotalDeposited(0);
       return;
     }
 
+    const EXCLUDED_DEP = ["referral_commission", "bot_reward", "admin_adjustment", "commission"];
     const pRef = dbRef(db, `userPayments/${user.uid}`);
     const wRef = dbRef(db, `withdrawRequests/${user.uid}`);
 
@@ -892,15 +942,25 @@ export default function Withdraw() {
 
     const unsubP = onValue(pRef, (snap) => {
       totalDeposits = 0;
+      let grossDeposited = 0;
       if (snap.exists()) {
         snap.forEach((child) => {
           const v = child.val();
           const s = String(v.status || "").toLowerCase();
+          const amt = Number(v.amount) || 0;
           if (["completed", "success", "paid"].includes(s)) {
-            totalDeposits += Number(v.amount) || 0;
+            totalDeposits += amt;
+            const t = String(v.type || "deposit");
+            if (!EXCLUDED_DEP.includes(t)) {
+              grossDeposited += amt;
+            }
           }
         });
       }
+      setTotalDeposited(grossDeposited);
+      try {
+        localStorage.setItem(`autex_dep_total_${user.uid}`, String(grossDeposited));
+      } catch { /* ignore */ }
       const bal = Math.max(0, totalDeposits - totalWithdraws);
       setBalance(bal);
       update(dbRef(db, `users/${user.uid}`), { balance: bal }).catch(() => {});
@@ -1048,8 +1108,18 @@ export default function Withdraw() {
 
       {/* ── ACCOUNT ACTIVATION GATE (MOBILE-FIRST BOTTOM SHEET) ── */}
       {isActive === false && (() => {
-        const required = parseFloat((totalDeposited * 0.25).toFixed(2));
-        const displayRequired = required > 0 ? required : 25;
+        const required = parseFloat((totalDeposited * 0.3).toFixed(2));
+        const displayRequired = required > 0 ? required : 30;
+        const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+        const deadline = (deactivatedAt || nowTs) + TWO_DAYS_MS;
+        const remainingMs = Math.max(0, deadline - nowTs);
+        const totalSec = Math.floor(remainingMs / 1000);
+        const days = Math.floor(totalSec / 86400);
+        const hrs = Math.floor((totalSec % 86400) / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        const pad = (n: number) => String(n).padStart(2, "0");
+
         return (
           <>
             {/* Blocking backdrop */}
@@ -1060,7 +1130,7 @@ export default function Withdraw() {
                 zIndex: 9980,
                 background: "rgba(0,0,0,0.68)",
                 backdropFilter: "blur(8px)",
-                animation: "maskIn 0.28s cubic-bezier(0.4,0,0.2,1) both",
+                animation: "maskIn 0.14s ease-out both",
               }}
             />
 
@@ -1090,7 +1160,7 @@ export default function Withdraw() {
                   borderLeft: "1px solid rgba(255,255,255,0.08)",
                   borderRight: "1px solid rgba(255,255,255,0.08)",
                   boxShadow: "0 -16px 56px rgba(0,0,0,0.65)",
-                  animation: "sheetIn 0.34s cubic-bezier(0.34,1.1,0.64,1) both",
+                  animation: "sheetIn 0.18s cubic-bezier(0.22,1,0.36,1) both",
                   paddingBottom: "calc(22px + env(safe-area-inset-bottom, 0px))",
                 }}
               >
@@ -1156,19 +1226,19 @@ export default function Withdraw() {
                 </div>
 
                 {/* Sheet Body */}
-                <div style={{ padding: "18px 20px 6px", textAlign: "center" }}>
+                <div style={{ padding: "16px 20px 6px", textAlign: "center" }}>
                   {/* Compact animated lock icon */}
                   <div
                     style={{
-                      width: 60,
-                      height: 60,
+                      width: 54,
+                      height: 54,
                       borderRadius: "50%",
                       background: "radial-gradient(circle at 38% 32%, #ef4444 0%, #7f1d1d 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 14px",
-                      fontSize: 28,
+                      margin: "0 auto 12px",
+                      fontSize: 25,
                       animation: "gateFloat 3s ease-in-out infinite, gatePulse 2.5s ease-in-out infinite",
                     }}
                   >
@@ -1178,7 +1248,7 @@ export default function Withdraw() {
                   <h2
                     style={{
                       margin: "0 0 6px",
-                      fontSize: 20,
+                      fontSize: 19.5,
                       fontWeight: 900,
                       color: "#ffffff",
                       letterSpacing: "-0.02em",
@@ -1188,23 +1258,78 @@ export default function Withdraw() {
                   </h2>
                   <p
                     style={{
-                      margin: "0 0 16px",
-                      fontSize: 13,
+                      margin: "0 0 14px",
+                      fontSize: 12.8,
                       color: "rgba(255,255,255,0.68)",
-                      lineHeight: 1.55,
+                      lineHeight: 1.5,
                     }}
                   >
-                    Your account is currently inactive. Deposit <strong style={{ color: "#fca5a5" }}>25%</strong> of your total deposited amount to reactivate and unlock withdrawals.
+                    Your account is inactive. Deposit <strong style={{ color: "#fca5a5" }}>30%</strong> of your total deposited amount within <strong style={{ color: "#fde047" }}>2 days</strong> to reactivate withdrawals.
                   </p>
+
+                  {/* 2-Day Countdown Timer */}
+                  <div
+                    style={{
+                      borderRadius: 16,
+                      padding: "11px 12px",
+                      background: "rgba(245,158,11,0.1)",
+                      border: "1px solid rgba(245,158,11,0.32)",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        color: "#fcd34d",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 8,
+                      }}
+                    >
+                      ⏳ Time Limit Remaining (2 Days Max)
+                    </div>
+                    {remainingMs > 0 ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                        {[
+                          { val: pad(days), label: "Days" },
+                          { val: pad(hrs), label: "Hrs" },
+                          { val: pad(mins), label: "Min" },
+                          { val: pad(secs), label: "Sec" },
+                        ].map((unit) => (
+                          <div
+                            key={unit.label}
+                            style={{
+                              background: "rgba(15,23,42,0.75)",
+                              border: "1px solid rgba(251,191,36,0.25)",
+                              borderRadius: 10,
+                              padding: "7px 4px",
+                            }}
+                          >
+                            <div style={{ fontSize: 18, fontWeight: 900, color: "#fde047", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+                              {unit.val}
+                            </div>
+                            <div style={{ fontSize: 9.5, fontWeight: 700, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", marginTop: 2 }}>
+                              {unit.label}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#f87171" }}>
+                        Activation window expired — contact support immediately
+                      </div>
+                    )}
+                  </div>
 
                   {/* Required Amount Card */}
                   <div
                     style={{
                       borderRadius: 18,
-                      padding: "16px",
+                      padding: "14px 16px",
                       background: "linear-gradient(135deg, rgba(239,68,68,0.16) 0%, rgba(185,28,28,0.08) 100%)",
                       border: "1px solid rgba(239,68,68,0.32)",
-                      marginBottom: 16,
+                      marginBottom: 14,
                       position: "relative",
                       overflow: "hidden",
                     }}
@@ -1230,11 +1355,11 @@ export default function Withdraw() {
                         marginBottom: 4,
                       }}
                     >
-                      Required Reactivation Deposit
+                      Required Reactivation Deposit (30%)
                     </div>
                     <div
                       style={{
-                        fontSize: 34,
+                        fontSize: 32,
                         fontWeight: 900,
                         color: "#f87171",
                         letterSpacing: "-0.03em",
@@ -1246,7 +1371,7 @@ export default function Withdraw() {
                       <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>USD</span>
                     </div>
                     <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.48)" }}>
-                      25% of ${totalDeposited.toFixed(2)} total deposited
+                      30% of ${totalDeposited.toFixed(2)} total deposited
                     </div>
                   </div>
 
