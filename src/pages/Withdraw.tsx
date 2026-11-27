@@ -840,6 +840,41 @@ export default function Withdraw() {
     ? validateZwPhone(destination)
     : selectedNet ? validateCryptoAddr(destination, selectedNet.id) : { ok: false, msg: "" };
 
+  // ── Account Activation Status ──
+  const [isActive, setIsActive] = useState<boolean | null>(null); // null = loading
+  const [totalDeposited, setTotalDeposited] = useState(0);
+  const [copiedGate, setCopiedGate] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsActive(null); return; }
+    const r = dbRef(db, `users/${user.uid}/isActive`);
+    return onValue(r, (snap) => {
+      // isActive defaults to true if not explicitly set to false
+      setIsActive(snap.exists() ? snap.val() !== false : true);
+    }, () => setIsActive(true));
+  }, [user]);
+
+  // Track gross deposited (all completed userPayments that are real deposits)
+  useEffect(() => {
+    if (!user) { setTotalDeposited(0); return; }
+    const EXCLUDED = ["referral_commission", "bot_reward", "admin_adjustment", "commission"];
+    const pRef = dbRef(db, `userPayments/${user.uid}`);
+    return onValue(pRef, (snap) => {
+      let total = 0;
+      if (snap.exists()) {
+        snap.forEach((child) => {
+          const v = child.val();
+          const s = String(v.status || "").toLowerCase();
+          const t = String(v.type || "deposit");
+          if (["completed", "success", "paid"].includes(s) && !EXCLUDED.includes(t)) {
+            total += Number(v.amount) || 0;
+          }
+        });
+      }
+      setTotalDeposited(total);
+    }, () => {});
+  }, [user]);
+
   // Live balance
   const [balance, setBalance] = useState<number | null>(null);
 
@@ -999,6 +1034,239 @@ export default function Withdraw() {
   return (
     <Shell>
       <style>{STYLES}</style>
+      <style>{`
+        @keyframes gateFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes gateShine {
+          0%{background-position:-200% 0}
+          100%{background-position:200% 0}
+        }
+        @keyframes gatePulse {
+          0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.5)}
+          50%{box-shadow:0 0 0 14px rgba(239,68,68,0)}
+        }
+      `}</style>
+
+      {/* ── ACCOUNT ACTIVATION GATE ── */}
+      {isActive === false && (() => {
+        const required = parseFloat((totalDeposited * 0.25).toFixed(2));
+        const displayRequired = required > 0 ? required : 25;
+        return (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9980,
+              background:
+                "radial-gradient(ellipse at 20% 30%, rgba(239,68,68,0.18) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(220,38,38,0.12) 0%, transparent 60%), rgba(0,0,0,0.75)",
+              backdropFilter: "blur(16px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 420,
+                width: "100%",
+                borderRadius: 28,
+                background: "rgba(15, 23, 42, 0.95)",
+                border: "1.5px solid rgba(239,68,68,0.4)",
+                boxShadow:
+                  "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08)",
+                overflow: "hidden",
+                textAlign: "center",
+              }}
+            >
+              {/* Red alert banner */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+                  padding: "14px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Account Suspended
+                </span>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: "30px 28px 28px" }}>
+                {/* Lock Icon with pulse */}
+                <div
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle at 40% 35%, #ef4444 0%, #7f1d1d 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 20px",
+                    fontSize: 36,
+                    animation: "gateFloat 3s ease-in-out infinite, gatePulse 2.5s ease-in-out infinite",
+                  }}
+                >
+                  🔒
+                </div>
+
+                <h2
+                  style={{
+                    margin: "0 0 10px",
+                    fontSize: 22,
+                    fontWeight: 900,
+                    color: "#ffffff",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Withdrawals Locked
+                </h2>
+                <p
+                  style={{
+                    margin: "0 0 24px",
+                    fontSize: 13.5,
+                    color: "rgba(255,255,255,0.65)",
+                    lineHeight: 1.65,
+                  }}
+                >
+                  Your account has been temporarily deactivated by the administrator. To unlock full withdrawal access, please make a reactivation deposit.
+                </p>
+
+                {/* Required amount card */}
+                <div
+                  style={{
+                    borderRadius: 18,
+                    padding: "20px 20px",
+                    background:
+                      "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(185,28,28,0.08) 100%)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    marginBottom: 22,
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Shimmer line */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.05) 50%, transparent 80%)",
+                      backgroundSize: "200% 100%",
+                      animation: "gateShine 3s linear infinite",
+                      pointerEvents: "none",
+                    }}
+                  />
+
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                    Required Reactivation Deposit
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 40,
+                      fontWeight: 900,
+                      color: "#f87171",
+                      letterSpacing: "-0.03em",
+                      lineHeight: 1,
+                      marginBottom: 4,
+                    }}
+                  >
+                    ${displayRequired.toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                    = 25% of your total deposited amount (${totalDeposited.toFixed(2)} USD)
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* Copy Amount */}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(displayRequired.toFixed(2)).catch(() => {});
+                      setCopiedGate(true);
+                      setTimeout(() => setCopiedGate(false), 2500);
+                    }}
+                    style={{
+                      padding: "14px 20px",
+                      borderRadius: 14,
+                      border: "1.5px solid rgba(239,68,68,0.4)",
+                      background: copiedGate
+                        ? "rgba(0,166,81,0.2)"
+                        : "rgba(239,68,68,0.12)",
+                      color: copiedGate ? "#4ade80" : "#fca5a5",
+                      fontWeight: 800,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      transition: "all 0.25s ease",
+                    }}
+                  >
+                    {copiedGate ? (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Copied! ${displayRequired.toFixed(2)}
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        Copy Amount: ${displayRequired.toFixed(2)} USD
+                      </>
+                    )}
+                  </button>
+
+                  {/* Deposit Now */}
+                  <button
+                    onClick={() => navigate("/deposit")}
+                    style={{
+                      padding: "14px 20px",
+                      borderRadius: 14,
+                      border: "none",
+                      background: "linear-gradient(135deg, #00a651 0%, #007a3c 100%)",
+                      color: "#ffffff",
+                      fontWeight: 900,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      boxShadow: "0 8px 24px rgba(0,166,81,0.4)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M12 2v20M17 7l-5-5-5 5" />
+                    </svg>
+                    Deposit Now to Reactivate
+                  </button>
+
+                  {/* Contact support hint */}
+                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>
+                    After depositing, contact support or wait for admin approval to restore your withdrawal access.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Header */}
       <div style={{ marginBottom: 18 }}>

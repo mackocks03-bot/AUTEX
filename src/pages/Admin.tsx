@@ -8,6 +8,7 @@ import { AdminNotifications } from "./AdminNotifications";
 import { AdminSettings } from "./AdminSettings";
 import { AdminPaymentAccounts } from "./AdminPaymentAccounts";
 import { AdminWhatsApp } from "./AdminWhatsApp";
+import { AdminUserAccess } from "./AdminUserAccess";
 
 /* ── Types ─────────────────────────────────────────── */
 type AdminTab =
@@ -17,6 +18,7 @@ type AdminTab =
   | "payments"
   | "payment-methods"
   | "users"
+  | "user-access"
   | "whatsapp"
   | "notifications"
   | "settings";
@@ -1021,6 +1023,7 @@ export default function Admin() {
     { key: "payments", label: "Deposits", icon: "💳", badge: pendingPayments.length },
     { key: "payment-methods", label: "Deposit Accounts", icon: "🏦" },
     { key: "users", label: "Users Directory", icon: "👥", badge: usersList.length },
+    { key: "user-access", label: "Account Access", icon: "🛡️" },
     { key: "whatsapp", label: "WhatsApp Group", icon: "💬" },
     { key: "notifications", label: "Alerts & Broadcast", icon: "🔔" },
     { key: "settings", label: "Settings", icon: "⚙️" },
@@ -1320,6 +1323,8 @@ export default function Admin() {
                   ? "Deposit Accounts & Addresses"
                   : tab === "users"
                   ? "Users Directory"
+                  : tab === "user-access"
+                  ? "Account Activation Control"
                   : tab === "whatsapp"
                   ? "WhatsApp Community Group"
                   : tab === "notifications"
@@ -2877,6 +2882,11 @@ export default function Admin() {
                   TAB: WHATSAPP COMMUNITY GROUP
               ────────────────────────────────────────────────────────── */}
               {tab === "whatsapp" && <AdminWhatsApp />}
+
+              {/* ──────────────────────────────────────────────────────────
+                  TAB: ACCOUNT ACTIVATION CONTROL
+              ────────────────────────────────────────────────────────── */}
+              {tab === "user-access" && <AdminUserAccess />}
 
               {/* ──────────────────────────────────────────────────────────
                   TAB 6: BROADCAST ALERTS & NOTIFICATIONS
