@@ -1165,8 +1165,8 @@ export default function Withdraw() {
                 }}
               >
                 {/* Sheet Handle */}
-                <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
-                  <div style={{ width: 38, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.2)" }} />
+                <div style={{ display: "flex", justifyContent: "center", padding: "7px 0 4px" }}>
+                  <div style={{ width: 34, height: 3.5, borderRadius: 999, background: "rgba(255,255,255,0.2)" }} />
                 </div>
 
                 {/* Top Alert Pill + Back Home */}
@@ -1175,7 +1175,7 @@ export default function Withdraw() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "4px 20px 12px",
+                    padding: "2px 16px 8px",
                     borderBottom: "1px solid rgba(255,255,255,0.07)",
                   }}
                 >
@@ -1183,13 +1183,13 @@ export default function Withdraw() {
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 7,
-                      padding: "5px 12px",
+                      gap: 6,
+                      padding: "3px 10px",
                       borderRadius: 999,
                       background: "rgba(239,68,68,0.16)",
                       border: "1px solid rgba(239,68,68,0.4)",
                       color: "#fca5a5",
-                      fontSize: 11.5,
+                      fontSize: 10,
                       fontWeight: 800,
                       letterSpacing: "0.04em",
                       textTransform: "uppercase",
@@ -1197,11 +1197,11 @@ export default function Withdraw() {
                   >
                     <span
                       style={{
-                        width: 7,
-                        height: 7,
+                        width: 6,
+                        height: 6,
                         borderRadius: "50%",
                         background: "#ef4444",
-                        boxShadow: "0 0 8px #ef4444",
+                        boxShadow: "0 0 6px #ef4444",
                       }}
                     />
                     Account Deactivated
@@ -1215,8 +1215,8 @@ export default function Withdraw() {
                       border: "1px solid rgba(255,255,255,0.1)",
                       color: "rgba(255,255,255,0.75)",
                       borderRadius: 999,
-                      padding: "5px 12px",
-                      fontSize: 12,
+                      padding: "3px 10px",
+                      fontSize: 11,
                       fontWeight: 700,
                       cursor: "pointer",
                     }}
@@ -1225,72 +1225,69 @@ export default function Withdraw() {
                   </button>
                 </div>
 
-                {/* Sheet Body */}
-                <div style={{ padding: "16px 20px 6px", textAlign: "center" }}>
-                  {/* Compact animated lock icon */}
-                  <div
-                    style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: "50%",
-                      background: "radial-gradient(circle at 38% 32%, #ef4444 0%, #7f1d1d 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 12px",
-                      fontSize: 25,
-                      animation: "gateFloat 3s ease-in-out infinite, gatePulse 2.5s ease-in-out infinite",
-                    }}
-                  >
-                    🔒
+                {/* Sheet Body — Compact */}
+                <div style={{ padding: "12px 16px 4px", textAlign: "center" }}>
+                  {/* Compact Header Row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
+                    <div
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: "radial-gradient(circle at 38% 32%, #ef4444 0%, #7f1d1d 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 16,
+                        flexShrink: 0,
+                        animation: "gatePulse 2.5s ease-in-out infinite",
+                      }}
+                    >
+                      🔒
+                    </div>
+                    <div style={{ textAlign: "left" }}>
+                      <h2
+                        style={{
+                          margin: 0,
+                          fontSize: 15.5,
+                          fontWeight: 900,
+                          color: "#ffffff",
+                          letterSpacing: "-0.02em",
+                          lineHeight: 1.15,
+                        }}
+                      >
+                        Withdrawals Locked
+                      </h2>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", lineHeight: 1.3, marginTop: 2 }}>
+                        Deposit <strong style={{ color: "#fca5a5" }}>30%</strong> within <strong style={{ color: "#fde047" }}>2 days</strong> to reactivate.
+                      </div>
+                    </div>
                   </div>
-
-                  <h2
-                    style={{
-                      margin: "0 0 6px",
-                      fontSize: 19.5,
-                      fontWeight: 900,
-                      color: "#ffffff",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    Withdrawals Locked
-                  </h2>
-                  <p
-                    style={{
-                      margin: "0 0 14px",
-                      fontSize: 12.8,
-                      color: "rgba(255,255,255,0.68)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Your account is inactive. Deposit <strong style={{ color: "#fca5a5" }}>30%</strong> of your total deposited amount within <strong style={{ color: "#fde047" }}>2 days</strong> to reactivate withdrawals.
-                  </p>
 
                   {/* 2-Day Countdown Timer */}
                   <div
                     style={{
-                      borderRadius: 16,
-                      padding: "11px 12px",
+                      borderRadius: 12,
+                      padding: "8px 10px",
                       background: "rgba(245,158,11,0.1)",
-                      border: "1px solid rgba(245,158,11,0.32)",
-                      marginBottom: 12,
+                      border: "1px solid rgba(245,158,11,0.3)",
+                      marginBottom: 8,
                     }}
                   >
                     <div
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 9.5,
                         fontWeight: 800,
                         color: "#fcd34d",
                         textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 8,
+                        letterSpacing: "0.06em",
+                        marginBottom: 5,
                       }}
                     >
                       ⏳ Time Limit Remaining (2 Days Max)
                     </div>
                     {remainingMs > 0 ? (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5 }}>
                         {[
                           { val: pad(days), label: "Days" },
                           { val: pad(hrs), label: "Hrs" },
@@ -1301,23 +1298,23 @@ export default function Withdraw() {
                             key={unit.label}
                             style={{
                               background: "rgba(15,23,42,0.75)",
-                              border: "1px solid rgba(251,191,36,0.25)",
-                              borderRadius: 10,
-                              padding: "7px 4px",
+                              border: "1px solid rgba(251,191,36,0.24)",
+                              borderRadius: 8,
+                              padding: "4px 2px",
                             }}
                           >
-                            <div style={{ fontSize: 18, fontWeight: 900, color: "#fde047", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+                            <div style={{ fontSize: 14.5, fontWeight: 900, color: "#fde047", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
                               {unit.val}
                             </div>
-                            <div style={{ fontSize: 9.5, fontWeight: 700, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", marginTop: 2 }}>
+                            <div style={{ fontSize: 8.5, fontWeight: 700, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", marginTop: 1 }}>
                               {unit.label}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#f87171" }}>
-                        Activation window expired — contact support immediately
+                      <div style={{ fontSize: 11.5, fontWeight: 800, color: "#f87171" }}>
+                        Activation window expired — contact support
                       </div>
                     )}
                   </div>
@@ -1325,11 +1322,11 @@ export default function Withdraw() {
                   {/* Required Amount Card */}
                   <div
                     style={{
-                      borderRadius: 18,
-                      padding: "14px 16px",
+                      borderRadius: 14,
+                      padding: "10px 12px",
                       background: "linear-gradient(135deg, rgba(239,68,68,0.16) 0%, rgba(185,28,28,0.08) 100%)",
                       border: "1px solid rgba(239,68,68,0.32)",
-                      marginBottom: 14,
+                      marginBottom: 10,
                       position: "relative",
                       overflow: "hidden",
                     }}
@@ -1347,36 +1344,35 @@ export default function Withdraw() {
 
                     <div
                       style={{
-                        fontSize: 10.5,
-                        color: "rgba(255,255,255,0.58)",
+                        fontSize: 9.5,
+                        color: "rgba(255,255,255,0.6)",
                         fontWeight: 800,
                         textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 4,
+                        letterSpacing: "0.06em",
+                        marginBottom: 2,
                       }}
                     >
                       Required Reactivation Deposit (30%)
                     </div>
                     <div
                       style={{
-                        fontSize: 32,
+                        fontSize: 25,
                         fontWeight: 900,
                         color: "#f87171",
                         letterSpacing: "-0.03em",
                         lineHeight: 1.1,
-                        marginBottom: 4,
                       }}
                     >
                       ${displayRequired.toFixed(2)}{" "}
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>USD</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>USD</span>
                     </div>
-                    <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.48)" }}>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.48)", marginTop: 2 }}>
                       30% of ${totalDeposited.toFixed(2)} total deposited
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -1386,31 +1382,31 @@ export default function Withdraw() {
                       }}
                       style={{
                         width: "100%",
-                        padding: "13px 16px",
-                        borderRadius: 14,
+                        padding: "10px 14px",
+                        borderRadius: 12,
                         border: `1.5px solid ${copiedGate ? "rgba(74,222,128,0.5)" : "rgba(239,68,68,0.4)"}`,
                         background: copiedGate ? "rgba(0,166,81,0.22)" : "rgba(239,68,68,0.12)",
                         color: copiedGate ? "#4ade80" : "#fca5a5",
                         fontWeight: 800,
-                        fontSize: 14.5,
+                        fontSize: 12.5,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 8,
+                        gap: 6,
                         transition: "all 0.2s ease",
                       }}
                     >
                       {copiedGate ? (
                         <>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                           Copied ${displayRequired.toFixed(2)}!
                         </>
                       ) : (
                         <>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                           </svg>
@@ -1424,29 +1420,29 @@ export default function Withdraw() {
                       onClick={() => navigate("/deposit")}
                       style={{
                         width: "100%",
-                        padding: "14px 16px",
-                        borderRadius: 14,
+                        padding: "11px 14px",
+                        borderRadius: 12,
                         border: "none",
                         background: "linear-gradient(135deg, #00a651 0%, #007a3c 100%)",
                         color: "#ffffff",
                         fontWeight: 900,
-                        fontSize: 15,
+                        fontSize: 13,
                         cursor: "pointer",
-                        boxShadow: "0 8px 24px rgba(0,166,81,0.38)",
+                        boxShadow: "0 6px 18px rgba(0,166,81,0.35)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 8,
+                        gap: 6,
                       }}
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M12 2v20M17 7l-5-5-5 5" />
                       </svg>
                       Deposit Now to Reactivate
                     </button>
 
-                    <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "rgba(255,255,255,0.42)", lineHeight: 1.45 }}>
-                      After depositing, your account will be reactivated once your payment is verified.
+                    <p style={{ margin: "1px 0 0", fontSize: 10, color: "rgba(255,255,255,0.42)", lineHeight: 1.35 }}>
+                      Account reactivates once your deposit is verified.
                     </p>
                   </div>
                 </div>
